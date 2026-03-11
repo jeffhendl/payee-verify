@@ -30,16 +30,16 @@ export default async function DashboardPage() {
     .order('created_at', { ascending: false });
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#FCFCFC]">
       <NavBar />
       <main className="max-w-6xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-            <p className="text-gray-500 mt-1">Manage your invoice verifications</p>
+            <h1 className="text-2xl font-bold text-[#383B3E]">Dashboard</h1>
+            <p className="text-[#92979C] mt-1">Manage your invoice verifications</p>
           </div>
           <Link href="/upload">
-            <Button className="gap-2">
+            <Button className="gap-2 bg-[#045B3F] hover:bg-[#034830]">
               <FileUp className="h-4 w-4" />
               Upload Invoice
             </Button>

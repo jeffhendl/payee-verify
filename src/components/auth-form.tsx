@@ -87,13 +87,13 @@ export function AuthForm() {
           </div>
 
           {error && (
-            <p className="text-sm text-red-600">{error}</p>
+            <p className="text-sm text-[#F12D1B]">{error}</p>
           )}
           {message && (
-            <p className="text-sm text-green-600">{message}</p>
+            <p className="text-sm text-[#30AC2E]">{message}</p>
           )}
 
-          <Button type="submit" className="w-full" disabled={loading}>
+          <Button type="submit" className="w-full bg-[#045B3F] hover:bg-[#034830]" disabled={loading}>
             {loading ? 'Please wait...' : isLogin ? 'Sign In' : 'Create Account'}
           </Button>
 
@@ -106,7 +106,7 @@ export function AuthForm() {
                 setError(null);
                 setMessage(null);
               }}
-              className="underline text-primary hover:text-primary/80"
+              className="underline text-[#045B3F] hover:text-[#034830]"
             >
               {isLogin ? 'Sign up' : 'Sign in'}
             </button>

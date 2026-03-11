@@ -80,9 +80,9 @@ export function VerificationResponseForm({ token, payee }: VerificationResponseF
     return (
       <Card className="max-w-lg mx-auto">
         <CardContent className="pt-8 pb-8 text-center">
-          <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Thank you!</h2>
-          <p className="text-gray-500">Your response has been recorded. You can close this page.</p>
+          <CheckCircle className="h-16 w-16 text-[#30AC2E] mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-[#383B3E] mb-2">Thank you!</h2>
+          <p className="text-[#92979C]">Your response has been recorded. You can close this page.</p>
         </CardContent>
       </Card>
     );
@@ -97,29 +97,29 @@ export function VerificationResponseForm({ token, payee }: VerificationResponseF
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex justify-between">
-            <span className="text-gray-500">Company</span>
+            <span className="text-[#92979C]">Company</span>
             <span className="font-medium">{payee.company_name || 'N/A'}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-500">Invoice Number</span>
+            <span className="text-[#92979C]">Invoice Number</span>
             <span className="font-medium">{payee.invoice_number || 'N/A'}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-500">Amount</span>
+            <span className="text-[#92979C]">Amount</span>
             <span className="font-medium">{formattedAmount}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-500">Bank Name</span>
+            <span className="text-[#92979C]">Bank Name</span>
             <span className="font-medium">{payee.bank_name || 'N/A'}</span>
           </div>
           {payee.country === 'US' && (
             <>
               <div className="flex justify-between">
-                <span className="text-gray-500">Routing Number</span>
+                <span className="text-[#92979C]">Routing Number</span>
                 <span className="font-mono">{maskValue(payee.aba_routing_number)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Account Number</span>
+                <span className="text-[#92979C]">Account Number</span>
                 <span className="font-mono">{maskValue(payee.account_number)}</span>
               </div>
             </>
@@ -127,15 +127,15 @@ export function VerificationResponseForm({ token, payee }: VerificationResponseF
           {payee.country === 'CA' && (
             <>
               <div className="flex justify-between">
-                <span className="text-gray-500">Transit Number</span>
+                <span className="text-[#92979C]">Transit Number</span>
                 <span className="font-mono">{maskValue(payee.transit_number)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Institution Number</span>
+                <span className="text-[#92979C]">Institution Number</span>
                 <span className="font-mono">{maskValue(payee.institution_number)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Account Number</span>
+                <span className="text-[#92979C]">Account Number</span>
                 <span className="font-mono">{maskValue(payee.account_number)}</span>
               </div>
             </>
@@ -148,7 +148,7 @@ export function VerificationResponseForm({ token, payee }: VerificationResponseF
         <div className="grid grid-cols-2 gap-4">
           <Button
             size="lg"
-            className="h-20 bg-green-600 hover:bg-green-700"
+            className="h-20 bg-[#045B3F] hover:bg-[#034830]"
             onClick={() => setMode('confirm')}
           >
             <CheckCircle className="h-5 w-5 mr-2" />
@@ -202,7 +202,7 @@ export function VerificationResponseForm({ token, payee }: VerificationResponseF
               </div>
             )}
 
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {error && <p className="text-sm text-[#F12D1B]">{error}</p>}
 
             <div className="flex gap-3">
               <Button variant="outline" onClick={() => setMode('choose')}>
@@ -211,7 +211,7 @@ export function VerificationResponseForm({ token, payee }: VerificationResponseF
               <Button
                 onClick={() => handleSubmit(mode === 'confirm')}
                 disabled={submitting}
-                className={mode === 'confirm' ? 'bg-green-600 hover:bg-green-700' : ''}
+                className={mode === 'confirm' ? 'bg-[#045B3F] hover:bg-[#034830]' : ''}
                 variant={mode === 'deny' ? 'destructive' : 'default'}
               >
                 {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}

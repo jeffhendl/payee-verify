@@ -19,13 +19,13 @@ interface ExtractedDataFormProps {
 }
 
 const statusConfig: Record<VerificationStatus, { label: string; color: string; icon: React.ReactNode }> = {
-  pending: { label: 'Pending', color: 'bg-gray-100 text-gray-700', icon: <Clock className="h-4 w-4" /> },
-  sent: { label: 'Email Sent', color: 'bg-blue-100 text-blue-700', icon: <Mail className="h-4 w-4" /> },
-  opened: { label: 'Opened', color: 'bg-yellow-100 text-yellow-700', icon: <Mail className="h-4 w-4" /> },
-  confirmed: { label: 'Confirmed', color: 'bg-green-100 text-green-700', icon: <CheckCircle className="h-4 w-4" /> },
-  denied: { label: 'Discrepancy Flagged', color: 'bg-red-100 text-red-700', icon: <XCircle className="h-4 w-4" /> },
-  expired: { label: 'Expired', color: 'bg-gray-100 text-gray-700', icon: <Clock className="h-4 w-4" /> },
-  failed: { label: 'Failed', color: 'bg-red-100 text-red-700', icon: <XCircle className="h-4 w-4" /> },
+  pending: { label: 'Pending', color: 'bg-[#E5E5E5] text-[#606265]', icon: <Clock className="h-4 w-4" /> },
+  sent: { label: 'Email Sent', color: 'bg-[#CFE5F3] text-[#045B3F]', icon: <Mail className="h-4 w-4" /> },
+  opened: { label: 'Opened', color: 'bg-[#EED9F7] text-[#8F5CCF]', icon: <Mail className="h-4 w-4" /> },
+  confirmed: { label: 'Confirmed', color: 'bg-[#F2FCE4] text-[#30AC2E]', icon: <CheckCircle className="h-4 w-4" /> },
+  denied: { label: 'Discrepancy Flagged', color: 'bg-[#FEF1ED] text-[#F12D1B]', icon: <XCircle className="h-4 w-4" /> },
+  expired: { label: 'Expired', color: 'bg-[#E5E5E5] text-[#606265]', icon: <Clock className="h-4 w-4" /> },
+  failed: { label: 'Failed', color: 'bg-[#FEF1ED] text-[#F12D1B]', icon: <XCircle className="h-4 w-4" /> },
 };
 
 export function ExtractedDataForm({ invoice, payee: initialPayee, verification: initialVerification }: ExtractedDataFormProps) {
@@ -141,7 +141,7 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
   };
 
   const confidence = invoice.raw_extracted?.confidence ?? 0;
-  const confidenceColor = confidence >= 0.8 ? 'bg-green-500' : confidence >= 0.5 ? 'bg-yellow-500' : 'bg-red-500';
+  const confidenceColor = confidence >= 0.8 ? 'bg-[#30AC2E]' : confidence >= 0.5 ? 'bg-[#D2F3A7]' : 'bg-[#F12D1B]';
 
   return (
     <div className="space-y-6">
@@ -152,14 +152,14 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
             <span className="text-sm font-medium">AI Extraction Confidence</span>
             <span className="text-sm font-bold">{Math.round(confidence * 100)}%</span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
+          <div className="w-full bg-[#E5E5E5] rounded-full h-2">
             <div
               className={`h-2 rounded-full ${confidenceColor}`}
               style={{ width: `${confidence * 100}%` }}
             />
           </div>
           {confidence < 0.7 && (
-            <p className="text-sm text-amber-600 mt-2">
+            <p className="text-sm text-[#F12D1B] mt-2">
               Lower confidence — please review all fields carefully before sending verification.
             </p>
           )}
@@ -178,12 +178,12 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
               </Badge>
             </div>
             {verification.response_data && (
-              <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+              <div className="mt-4 p-4 bg-[#F2F2F2] rounded-lg">
                 <p className="text-sm font-medium mb-1">
                   Response from {verification.response_data.respondent_name} ({verification.response_data.respondent_role})
                 </p>
                 {verification.response_data.discrepancies && (
-                  <p className="text-sm text-red-600 mt-1">
+                  <p className="text-sm text-[#F12D1B] mt-1">
                     Discrepancy: {verification.response_data.discrepancies}
                   </p>
                 )}
@@ -426,6 +426,7 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
         <Button
           onClick={handleSendVerification}
           disabled={sending || !payee.contact_phone || (verification?.status === 'sent')}
+          className="bg-[#045B3F] hover:bg-[#034830]"
         >
           {sending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
           <Mail className="h-4 w-4 mr-2" />

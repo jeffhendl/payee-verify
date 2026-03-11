@@ -95,8 +95,8 @@ export function InvoiceUploadForm() {
             dragActive
               ? 'border-primary bg-primary/5'
               : state === 'idle'
-              ? 'border-gray-300 hover:border-gray-400'
-              : 'border-gray-200'
+              ? 'border-[#D3D7DC] hover:border-[#92979C]'
+              : 'border-[#D3D7DC]'
           }`}
           onDragOver={(e) => {
             e.preventDefault();
@@ -107,11 +107,11 @@ export function InvoiceUploadForm() {
         >
           {state === 'idle' && (
             <>
-              <FileUp className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-lg font-medium text-gray-700 mb-2">
+              <FileUp className="h-12 w-12 text-[#92979C] mx-auto mb-4" />
+              <p className="text-lg font-medium text-[#383B3E] mb-2">
                 Drop your invoice PDF here
               </p>
-              <p className="text-sm text-gray-500 mb-4">or click to browse</p>
+              <p className="text-sm text-[#92979C] mb-4">or click to browse</p>
               <label className="cursor-pointer inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground">
                 Choose File
                 <input
@@ -127,20 +127,20 @@ export function InvoiceUploadForm() {
           {state === 'uploading' && (
             <>
               <Loader2 className="h-12 w-12 text-primary mx-auto mb-4 animate-spin" />
-              <p className="text-lg font-medium text-gray-700 mb-1">
+              <p className="text-lg font-medium text-[#383B3E] mb-1">
                 Uploading {fileName}...
               </p>
-              <p className="text-sm text-gray-500">Please wait</p>
+              <p className="text-sm text-[#92979C]">Please wait</p>
             </>
           )}
 
           {state === 'parsing' && (
             <>
               <Loader2 className="h-12 w-12 text-primary mx-auto mb-4 animate-spin" />
-              <p className="text-lg font-medium text-gray-700 mb-1">
+              <p className="text-lg font-medium text-[#383B3E] mb-1">
                 Analyzing invoice with AI...
               </p>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-[#92979C]">
                 Extracting payee details, banking information, and invoice data
               </p>
             </>
@@ -148,11 +148,11 @@ export function InvoiceUploadForm() {
 
           {state === 'done' && (
             <>
-              <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-              <p className="text-lg font-medium text-gray-700 mb-1">
+              <CheckCircle className="h-12 w-12 text-[#30AC2E] mx-auto mb-4" />
+              <p className="text-lg font-medium text-[#383B3E] mb-1">
                 Invoice parsed successfully!
               </p>
-              <p className="text-sm text-gray-500">Redirecting to review...</p>
+              <p className="text-sm text-[#92979C]">Redirecting to review...</p>
             </>
           )}
         </div>
