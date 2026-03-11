@@ -38,7 +38,7 @@ export function DashboardTable({ invoices }: { invoices: DashboardInvoice[] }) {
         <h3 className="text-lg font-medium text-[#383B3E] mb-1">No invoices yet</h3>
         <p className="text-[#92979C] mb-4">Upload your first invoice to get started</p>
         <Link href="/upload">
-          <Button>Upload Invoice</Button>
+          <Button className="rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.1),0_2px_8px_rgba(4,91,63,0.15)]">Upload Invoice</Button>
         </Link>
       </div>
     );
@@ -66,7 +66,7 @@ export function DashboardTable({ invoices }: { invoices: DashboardInvoice[] }) {
             : '—';
 
           return (
-            <TableRow key={invoice.id} className="even:bg-[#F2FCE4]/50">
+            <TableRow key={invoice.id} className="hover:bg-[#F7F7F7] transition-colors">
               <TableCell className="font-medium">{invoice.file_name}</TableCell>
               <TableCell>{payee?.company_name || '—'}</TableCell>
               <TableCell>{formatted}</TableCell>

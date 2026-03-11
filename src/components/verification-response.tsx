@@ -78,7 +78,7 @@ export function VerificationResponseForm({ token, payee }: VerificationResponseF
 
   if (mode === 'submitted') {
     return (
-      <Card className="max-w-lg mx-auto">
+      <Card className="max-w-lg mx-auto rounded-2xl border-[#E8EAEC] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
         <CardContent className="pt-8 pb-8 text-center">
           <CheckCircle className="h-16 w-16 text-[#30AC2E] mx-auto mb-4" />
           <h2 className="text-xl font-bold text-[#383B3E] mb-2">Thank you!</h2>
@@ -91,7 +91,7 @@ export function VerificationResponseForm({ token, payee }: VerificationResponseF
   return (
     <div className="max-w-lg mx-auto space-y-6">
       {/* Invoice Details */}
-      <Card>
+      <Card className="rounded-2xl border-[#E8EAEC] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
         <CardHeader>
           <CardTitle className="text-lg">Invoice Details to Verify</CardTitle>
         </CardHeader>
@@ -148,7 +148,7 @@ export function VerificationResponseForm({ token, payee }: VerificationResponseF
         <div className="grid grid-cols-2 gap-4">
           <Button
             size="lg"
-            className="h-20 bg-[#045B3F] hover:bg-[#034830]"
+            className="h-16 rounded-2xl bg-[#045B3F] hover:bg-[#034830] shadow-[0_1px_2px_rgba(0,0,0,0.1),0_2px_8px_rgba(4,91,63,0.15)]"
             onClick={() => setMode('confirm')}
           >
             <CheckCircle className="h-5 w-5 mr-2" />
@@ -157,7 +157,7 @@ export function VerificationResponseForm({ token, payee }: VerificationResponseF
           <Button
             size="lg"
             variant="destructive"
-            className="h-20"
+            className="h-16 rounded-2xl"
             onClick={() => setMode('deny')}
           >
             <XCircle className="h-5 w-5 mr-2" />
@@ -167,7 +167,7 @@ export function VerificationResponseForm({ token, payee }: VerificationResponseF
       )}
 
       {(mode === 'confirm' || mode === 'deny') && (
-        <Card>
+        <Card className="rounded-2xl border-[#E8EAEC] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
           <CardHeader>
             <CardTitle className="text-lg">
               {mode === 'confirm' ? 'Confirm Details Are Correct' : 'Report Discrepancy'}
@@ -180,6 +180,7 @@ export function VerificationResponseForm({ token, payee }: VerificationResponseF
                 value={respondentName}
                 onChange={(e) => setRespondentName(e.target.value)}
                 placeholder="John Smith"
+                className="rounded-xl h-11"
               />
             </div>
             <div>
@@ -188,6 +189,7 @@ export function VerificationResponseForm({ token, payee }: VerificationResponseF
                 value={respondentRole}
                 onChange={(e) => setRespondentRole(e.target.value)}
                 placeholder="Accounts Receivable Manager"
+                className="rounded-xl h-11"
               />
             </div>
             {mode === 'deny' && (
@@ -198,6 +200,7 @@ export function VerificationResponseForm({ token, payee }: VerificationResponseF
                   onChange={(e) => setDiscrepancies(e.target.value)}
                   placeholder="Please describe what details are incorrect..."
                   rows={4}
+                  className="rounded-xl"
                 />
               </div>
             )}

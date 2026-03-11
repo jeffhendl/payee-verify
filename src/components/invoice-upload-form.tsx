@@ -88,10 +88,10 @@ export function InvoiceUploadForm() {
   }, [processFile]);
 
   return (
-    <Card className="max-w-xl mx-auto">
+    <Card className="max-w-2xl mx-auto rounded-2xl border-[#E8EAEC] shadow-[0_1px_3px_rgba(0,0,0,0.04),0_6px_24px_rgba(0,0,0,0.03)]">
       <CardContent className="pt-6">
         <div
-          className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${
+          className={`border-2 border-dashed rounded-2xl p-16 text-center transition-colors ${
             dragActive
               ? 'border-primary bg-primary/5'
               : state === 'idle'
@@ -107,12 +107,12 @@ export function InvoiceUploadForm() {
         >
           {state === 'idle' && (
             <>
-              <FileUp className="h-12 w-12 text-[#92979C] mx-auto mb-4" />
-              <p className="text-lg font-medium text-[#383B3E] mb-2">
+              <FileUp className="h-16 w-16 text-[#D3D7DC] mx-auto mb-4" />
+              <p className="text-xl font-medium text-[#383B3E] mb-2">
                 Drop your invoice PDF here
               </p>
               <p className="text-sm text-[#92979C] mb-4">or click to browse</p>
-              <label className="cursor-pointer inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground">
+              <label className="cursor-pointer inline-flex items-center justify-center rounded-xl border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground">
                 Choose File
                 <input
                   type="file"

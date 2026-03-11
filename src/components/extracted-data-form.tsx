@@ -146,15 +146,15 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
   return (
     <div className="space-y-6">
       {/* Confidence Score */}
-      <Card>
+      <Card className="rounded-2xl border-[#E8EAEC] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
         <CardContent className="pt-6">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium">AI Extraction Confidence</span>
             <span className="text-sm font-bold">{Math.round(confidence * 100)}%</span>
           </div>
-          <div className="w-full bg-[#E5E5E5] rounded-full h-2">
+          <div className="w-full bg-[#E5E5E5] rounded-full h-2.5">
             <div
-              className={`h-2 rounded-full ${confidenceColor}`}
+              className={`h-2.5 rounded-full ${confidenceColor}`}
               style={{ width: `${confidence * 100}%` }}
             />
           </div>
@@ -168,7 +168,7 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
 
       {/* Verification Status */}
       {verification && (
-        <Card>
+        <Card className="rounded-2xl border-[#E8EAEC] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <span className="text-sm font-medium">Verification Status:</span>
@@ -194,9 +194,9 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
       )}
 
       {/* Invoice Details */}
-      <Card>
+      <Card className="rounded-2xl border-[#E8EAEC] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
         <CardHeader>
-          <CardTitle className="text-lg">Invoice Details</CardTitle>
+          <CardTitle className="text-lg tracking-[-0.01em]">Invoice Details</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-2 gap-4">
           <div>
@@ -234,7 +234,7 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
           <div>
             <Label>Currency</Label>
             <select
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+              className="flex h-10 w-full rounded-xl border border-input bg-transparent px-3 py-1 text-sm"
               value={payee.currency}
               onChange={(e) => updateField('currency', e.target.value)}
             >
@@ -246,9 +246,9 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
       </Card>
 
       {/* Payee Contact */}
-      <Card>
+      <Card className="rounded-2xl border-[#E8EAEC] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
         <CardHeader>
-          <CardTitle className="text-lg">Payee Contact</CardTitle>
+          <CardTitle className="text-lg tracking-[-0.01em]">Payee Contact</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-2 gap-4">
           <div>
@@ -284,9 +284,9 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
       </Card>
 
       {/* Address */}
-      <Card>
+      <Card className="rounded-2xl border-[#E8EAEC] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
         <CardHeader>
-          <CardTitle className="text-lg">Address</CardTitle>
+          <CardTitle className="text-lg tracking-[-0.01em]">Address</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-2 gap-4">
           <div className="col-span-2">
@@ -327,7 +327,7 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
           <div>
             <Label>Country</Label>
             <select
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+              className="flex h-10 w-full rounded-xl border border-input bg-transparent px-3 py-1 text-sm"
               value={payee.country}
               onChange={(e) => updateField('country', e.target.value)}
             >
@@ -339,9 +339,9 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
       </Card>
 
       {/* Banking Details */}
-      <Card>
+      <Card className="rounded-2xl border-[#E8EAEC] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
         <CardHeader>
-          <CardTitle className="text-lg">
+          <CardTitle className="text-lg tracking-[-0.01em]">
             Banking Details {payee.country === 'CA' ? '(Canada)' : '(United States)'}
           </CardTitle>
         </CardHeader>
@@ -404,7 +404,7 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
           <div>
             <Label>Account Type</Label>
             <select
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+              className="flex h-10 w-full rounded-xl border border-input bg-transparent px-3 py-1 text-sm"
               value={payee.account_type || ''}
               onChange={(e) => updateField('account_type', e.target.value || null)}
             >
@@ -419,14 +419,14 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
       {/* Actions */}
       <Separator />
       <div className="flex gap-3 justify-end">
-        <Button variant="outline" onClick={handleSave} disabled={saving}>
+        <Button variant="outline" onClick={handleSave} disabled={saving} className="rounded-xl">
           {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
           Save Changes
         </Button>
         <Button
           onClick={handleSendVerification}
           disabled={sending || !payee.contact_phone || (verification?.status === 'sent')}
-          className="bg-[#045B3F] hover:bg-[#034830]"
+          className="bg-[#045B3F] hover:bg-[#034830] rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.1),0_2px_8px_rgba(4,91,63,0.15)]"
         >
           {sending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
           <Mail className="h-4 w-4 mr-2" />

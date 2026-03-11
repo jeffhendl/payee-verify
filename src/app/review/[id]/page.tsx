@@ -45,12 +45,12 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
   const verification = verifications?.[0] || null;
 
   return (
-    <div className="min-h-screen bg-[#FCFCFC]">
+    <div className="min-h-screen bg-white">
       <NavBar />
-      <main className="max-w-3xl mx-auto px-4 py-8">
+      <main className="max-w-3xl mx-auto px-6 py-10">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-[#383B3E]">Review Extracted Data</h1>
-          <p className="text-[#92979C] mt-1">
+          <h1 className="text-2xl font-semibold text-[#1D1D1D] tracking-[-0.02em]">Review Extracted Data</h1>
+          <p className="text-[#71717A] mt-1.5 text-[15px]">
             Review and edit the details extracted from <strong>{(invoice as Invoice).file_name}</strong>
           </p>
         </div>
