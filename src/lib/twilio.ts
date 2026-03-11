@@ -8,8 +8,9 @@ const client = twilio(
 
 interface VerificationSmsParams {
   to: string;
+  senderFirstName: string;
+  senderCompany: string;
   payeeCompany: string;
-  invoiceNumber: string;
   invoiceAmount: number;
   currency: string;
   verifyUrl: string;
@@ -21,7 +22,7 @@ export async function sendVerificationSms(params: VerificationSmsParams) {
     currency: params.currency,
   }).format(params.invoiceAmount);
 
-  const message = `Payee Verify: Please verify invoice ${params.invoiceNumber} for ${formattedAmount} from ${params.payeeCompany}. Confirm or flag discrepancies here: ${params.verifyUrl}`;
+  const message = `${params.senderFirstName} at ${params.senderCompany} is requesting that you verify an invoice for ${params.payeeCompany} for ${formattedAmount}. Please review and confirm here: ${params.verifyUrl}`;
 
   await client.messages.create({
     body: message,

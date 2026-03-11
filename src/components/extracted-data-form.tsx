@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
-import { Loader2, Mail, CheckCircle, XCircle, Clock, AlertTriangle, ShieldCheck, ShieldX } from 'lucide-react';
+import { Loader2, Send, Save, CheckCircle, XCircle, Clock, AlertTriangle, ShieldCheck, ShieldX, Mail, User, Briefcase } from 'lucide-react';
 import type { Payee, Invoice, Verification, VerificationStatus, InvoiceStatus } from '@/lib/types';
 
 interface ExtractedDataFormProps {
@@ -22,7 +22,7 @@ const verificationStatusConfig: Record<VerificationStatus, { label: string; colo
   pending: { label: 'Pending', color: 'bg-[#E5E5E5] text-[#606265]', icon: <Clock className="h-4 w-4" /> },
   sent: { label: 'SMS Sent', color: 'bg-[#CFE5F3] text-[#045B3F]', icon: <Mail className="h-4 w-4" /> },
   opened: { label: 'Opened', color: 'bg-[#EED9F7] text-[#8F5CCF]', icon: <Mail className="h-4 w-4" /> },
-  confirmed: { label: 'Confirmed by Payee', color: 'bg-[#F2FCE4] text-[#30AC2E]', icon: <CheckCircle className="h-4 w-4" /> },
+  confirmed: { label: 'Payee Confirmed', color: 'bg-[#F2FCE4] text-[#30AC2E]', icon: <CheckCircle className="h-4 w-4" /> },
   denied: { label: 'Discrepancy Flagged', color: 'bg-[#FEF1ED] text-[#F12D1B]', icon: <XCircle className="h-4 w-4" /> },
   expired: { label: 'Expired', color: 'bg-[#E5E5E5] text-[#606265]', icon: <Clock className="h-4 w-4" /> },
   failed: { label: 'Failed', color: 'bg-[#FEF1ED] text-[#F12D1B]', icon: <XCircle className="h-4 w-4" /> },
@@ -67,6 +67,10 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
   const missingFields = useMemo(() => getMissingFields(payee), [payee]);
   const errors = missingFields.filter(f => f.severity === 'error');
   const warnings = missingFields.filter(f => f.severity === 'warning');
+
+  const isPayeeConfirmed = verification?.status === 'confirmed' || invoiceStatus === 'pending_review';
+  const isFinalized = invoiceStatus === 'verified' || invoiceStatus === 'denied';
+  const isReadOnly = isPayeeConfirmed || isFinalized;
 
   // Poll for verification status updates
   useEffect(() => {
@@ -132,18 +136,59 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
 
     if (error) {
       toast.error('Failed to save changes');
+      return false;
     } else {
       toast.success('Changes saved');
+      return true;
     }
   };
 
-  const handleSendVerification = async () => {
+  const handleSaveAndSend = async () => {
     if (!payee.contact_phone) {
       toast.error('Payee does not have a phone number. Please add one first.');
       return;
     }
 
     setSending(true);
+
+    // Save first
+    const saveResult = await supabase
+      .from('payees')
+      .update({
+        company_name: payee.company_name,
+        contact_name: payee.contact_name,
+        contact_email: payee.contact_email,
+        contact_phone: payee.contact_phone,
+        address_line1: payee.address_line1,
+        address_line2: payee.address_line2,
+        city: payee.city,
+        state_province: payee.state_province,
+        postal_code: payee.postal_code,
+        country: payee.country,
+        aba_routing_number: payee.aba_routing_number,
+        account_number: payee.account_number,
+        transit_number: payee.transit_number,
+        institution_number: payee.institution_number,
+        bank_name: payee.bank_name,
+        account_type: payee.account_type,
+        invoice_number: payee.invoice_number,
+        invoice_amount: payee.invoice_amount,
+        invoice_date: payee.invoice_date,
+        due_date: payee.due_date,
+        currency: payee.currency,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', payee.id);
+
+    if (saveResult.error) {
+      toast.error('Failed to save changes');
+      setSending(false);
+      return;
+    }
+
+    toast.success('Changes saved');
+
+    // Then send
     try {
       const res = await fetch('/api/verifications/send', {
         method: 'POST',
@@ -208,8 +253,122 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
 
   return (
     <div className="space-y-6">
-      {/* Missing Fields Warnings */}
-      {missingFields.length > 0 && (
+      {/* Pending Review Banner — show at top when payee has confirmed */}
+      {invoiceStatus === 'pending_review' && (
+        <Card className="rounded-2xl border-[#045B3F] bg-[#F0FFF8] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+          <CardContent className="pt-6 pb-6">
+            <div className="flex items-start gap-3 mb-4">
+              <ShieldCheck className="h-6 w-6 text-[#045B3F] flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-base font-semibold text-[#045B3F]">Payee Confirmed — Your Approval Required</p>
+                <p className="text-sm text-[#4A7C6A] mt-1">
+                  The payee has confirmed the invoice details. Review the information below and approve or reject.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3 ml-9">
+              <Button
+                onClick={() => handleApproval('approve')}
+                disabled={approving}
+                className="bg-[#045B3F] hover:bg-[#034830] rounded-xl gap-2 shadow-[0_1px_2px_rgba(0,0,0,0.1),0_2px_8px_rgba(4,91,63,0.15)]"
+              >
+                {approving && <Loader2 className="h-4 w-4 animate-spin" />}
+                <ShieldCheck className="h-4 w-4" />
+                Approve & Verify
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => handleApproval('reject')}
+                disabled={approving}
+                className="rounded-xl gap-2 text-[#F12D1B] border-[#F12D1B] hover:bg-[#FEF1ED] hover:text-[#F12D1B]"
+              >
+                <ShieldX className="h-4 w-4" />
+                Reject
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Finalized status banner */}
+      {invoiceStatus === 'verified' && (
+        <Card className="rounded-2xl border-[#30AC2E] bg-[#F2FCE4] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+          <CardContent className="pt-6 pb-6">
+            <div className="flex items-center gap-3">
+              <ShieldCheck className="h-6 w-6 text-[#30AC2E]" />
+              <p className="text-base font-semibold text-[#30AC2E]">Verified & Approved</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      {invoiceStatus === 'denied' && (
+        <Card className="rounded-2xl border-[#F12D1B] bg-[#FEF1ED] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+          <CardContent className="pt-6 pb-6">
+            <div className="flex items-center gap-3">
+              <ShieldX className="h-6 w-6 text-[#F12D1B]" />
+              <p className="text-base font-semibold text-[#F12D1B]">Rejected</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Verification Status & Response Data — show above confidence when payee has responded */}
+      {verification && (verification.status === 'confirmed' || verification.status === 'denied') && verification.response_data && (
+        <Card className="rounded-2xl border-[#E8EAEC] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg tracking-[-0.01em]">Payee Response</CardTitle>
+              <Badge className={`gap-1 ${verificationStatusConfig[verification.status as VerificationStatus]?.color || ''}`}>
+                {verificationStatusConfig[verification.status as VerificationStatus]?.icon}
+                {verificationStatusConfig[verification.status as VerificationStatus]?.label || verification.status}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2 text-sm">
+                <User className="h-4 w-4 text-[#92979C]" />
+                <span className="text-[#92979C]">Respondent:</span>
+                <span className="font-medium">{verification.response_data.respondent_name}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <Briefcase className="h-4 w-4 text-[#92979C]" />
+                <span className="text-[#92979C]">Role:</span>
+                <span className="font-medium">{verification.response_data.respondent_role}</span>
+              </div>
+            </div>
+            {verification.responded_at && (
+              <p className="text-xs text-[#92979C]">
+                Responded {new Date(verification.responded_at).toLocaleString()}
+              </p>
+            )}
+            {verification.response_data.discrepancies && (
+              <div className="mt-3 p-4 bg-[#FEF1ED] rounded-xl border border-[#FECDC6]">
+                <p className="text-sm font-medium text-[#991B1B] mb-1">Discrepancy Reported:</p>
+                <p className="text-sm text-[#991B1B]">{verification.response_data.discrepancies}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Verification Status — show when sent but not yet responded */}
+      {verification && verification.status !== 'confirmed' && verification.status !== 'denied' && (
+        <Card className="rounded-2xl border-[#E8EAEC] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium">Verification Status:</span>
+              <Badge className={`gap-1 ${verificationStatusConfig[verification.status as VerificationStatus]?.color || ''}`}>
+                {verificationStatusConfig[verification.status as VerificationStatus]?.icon}
+                {verificationStatusConfig[verification.status as VerificationStatus]?.label || verification.status}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Missing Fields Warnings — only show when editable */}
+      {!isReadOnly && missingFields.length > 0 && (
         <Card className="rounded-2xl border-[#F5C518] bg-[#FFFDF0] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
           <CardContent className="pt-5 pb-5">
             <div className="flex items-start gap-3">
@@ -265,70 +424,6 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
         </CardContent>
       </Card>
 
-      {/* Pending Review Banner */}
-      {invoiceStatus === 'pending_review' && (
-        <Card className="rounded-2xl border-[#045B3F] bg-[#F0FFF8] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-          <CardContent className="pt-6 pb-6">
-            <div className="flex items-start gap-3 mb-4">
-              <ShieldCheck className="h-6 w-6 text-[#045B3F] flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-base font-semibold text-[#045B3F]">Payee Confirmed — Your Approval Required</p>
-                <p className="text-sm text-[#4A7C6A] mt-1">
-                  The payee has confirmed the invoice details. Review the information and approve or reject.
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-3 ml-9">
-              <Button
-                onClick={() => handleApproval('approve')}
-                disabled={approving}
-                className="bg-[#045B3F] hover:bg-[#034830] rounded-xl gap-2 shadow-[0_1px_2px_rgba(0,0,0,0.1),0_2px_8px_rgba(4,91,63,0.15)]"
-              >
-                {approving && <Loader2 className="h-4 w-4 animate-spin" />}
-                <ShieldCheck className="h-4 w-4" />
-                Approve & Verify
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => handleApproval('reject')}
-                disabled={approving}
-                className="rounded-xl gap-2 text-[#F12D1B] border-[#F12D1B] hover:bg-[#FEF1ED] hover:text-[#F12D1B]"
-              >
-                <ShieldX className="h-4 w-4" />
-                Reject
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Verification Status */}
-      {verification && (
-        <Card className="rounded-2xl border-[#E8EAEC] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium">Verification Status:</span>
-              <Badge className={`gap-1 ${verificationStatusConfig[verification.status as VerificationStatus]?.color || ''}`}>
-                {verificationStatusConfig[verification.status as VerificationStatus]?.icon}
-                {verificationStatusConfig[verification.status as VerificationStatus]?.label || verification.status}
-              </Badge>
-            </div>
-            {verification.response_data && (
-              <div className="mt-4 p-4 bg-[#F2F2F2] rounded-lg">
-                <p className="text-sm font-medium mb-1">
-                  Response from {verification.response_data.respondent_name} ({verification.response_data.respondent_role})
-                </p>
-                {verification.response_data.discrepancies && (
-                  <p className="text-sm text-[#F12D1B] mt-1">
-                    Discrepancy: {verification.response_data.discrepancies}
-                  </p>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
       {/* Invoice Details */}
       <Card className="rounded-2xl border-[#E8EAEC] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
         <CardHeader>
@@ -341,6 +436,7 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
               value={payee.invoice_number || ''}
               onChange={(e) => updateField('invoice_number', e.target.value)}
               className={!payee.invoice_number ? 'border-[#F5C518]' : ''}
+              disabled={isReadOnly}
             />
           </div>
           <div>
@@ -351,6 +447,7 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
               value={payee.invoice_amount || ''}
               onChange={(e) => updateField('invoice_amount', e.target.value ? parseFloat(e.target.value) : null)}
               className={!payee.invoice_amount ? 'border-[#F5C518]' : ''}
+              disabled={isReadOnly}
             />
           </div>
           <div>
@@ -359,6 +456,7 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
               type="date"
               value={payee.invoice_date || ''}
               onChange={(e) => updateField('invoice_date', e.target.value)}
+              disabled={isReadOnly}
             />
           </div>
           <div>
@@ -367,14 +465,16 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
               type="date"
               value={payee.due_date || ''}
               onChange={(e) => updateField('due_date', e.target.value)}
+              disabled={isReadOnly}
             />
           </div>
           <div>
             <Label>Currency</Label>
             <select
-              className="flex h-10 w-full rounded-xl border border-input bg-transparent px-3 py-1 text-sm"
+              className="flex h-10 w-full rounded-xl border border-input bg-transparent px-3 py-1 text-sm disabled:opacity-50"
               value={payee.currency}
               onChange={(e) => updateField('currency', e.target.value)}
+              disabled={isReadOnly}
             >
               <option value="USD">USD</option>
               <option value="CAD">CAD</option>
@@ -395,6 +495,7 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
               value={payee.company_name || ''}
               onChange={(e) => updateField('company_name', e.target.value)}
               className={!payee.company_name ? 'border-[#F5C518]' : ''}
+              disabled={isReadOnly}
             />
           </div>
           <div>
@@ -402,6 +503,7 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
             <Input
               value={payee.contact_name || ''}
               onChange={(e) => updateField('contact_name', e.target.value)}
+              disabled={isReadOnly}
             />
           </div>
           <div>
@@ -410,6 +512,7 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
               type="email"
               value={payee.contact_email || ''}
               onChange={(e) => updateField('contact_email', e.target.value)}
+              disabled={isReadOnly}
             />
           </div>
           <div>
@@ -419,6 +522,7 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
               onChange={(e) => updateField('contact_phone', e.target.value)}
               placeholder="+1XXXXXXXXXX"
               className={!payee.contact_phone ? 'border-[#F5C518]' : ''}
+              disabled={isReadOnly}
             />
           </div>
         </CardContent>
@@ -435,6 +539,7 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
             <Input
               value={payee.address_line1 || ''}
               onChange={(e) => updateField('address_line1', e.target.value)}
+              disabled={isReadOnly}
             />
           </div>
           <div className="col-span-2">
@@ -442,6 +547,7 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
             <Input
               value={payee.address_line2 || ''}
               onChange={(e) => updateField('address_line2', e.target.value)}
+              disabled={isReadOnly}
             />
           </div>
           <div>
@@ -449,6 +555,7 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
             <Input
               value={payee.city || ''}
               onChange={(e) => updateField('city', e.target.value)}
+              disabled={isReadOnly}
             />
           </div>
           <div>
@@ -456,6 +563,7 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
             <Input
               value={payee.state_province || ''}
               onChange={(e) => updateField('state_province', e.target.value)}
+              disabled={isReadOnly}
             />
           </div>
           <div>
@@ -463,14 +571,16 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
             <Input
               value={payee.postal_code || ''}
               onChange={(e) => updateField('postal_code', e.target.value)}
+              disabled={isReadOnly}
             />
           </div>
           <div>
             <Label>Country</Label>
             <select
-              className="flex h-10 w-full rounded-xl border border-input bg-transparent px-3 py-1 text-sm"
+              className="flex h-10 w-full rounded-xl border border-input bg-transparent px-3 py-1 text-sm disabled:opacity-50"
               value={payee.country}
               onChange={(e) => updateField('country', e.target.value)}
+              disabled={isReadOnly}
             >
               <option value="US">United States</option>
               <option value="CA">Canada</option>
@@ -496,6 +606,7 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
                   onChange={(e) => updateField('aba_routing_number', e.target.value)}
                   maxLength={9}
                   placeholder="9 digits"
+                  disabled={isReadOnly}
                 />
               </div>
               <div>
@@ -503,6 +614,7 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
                 <Input
                   value={payee.account_number || ''}
                   onChange={(e) => updateField('account_number', e.target.value)}
+                  disabled={isReadOnly}
                 />
               </div>
             </>
@@ -515,6 +627,7 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
                   onChange={(e) => updateField('transit_number', e.target.value)}
                   maxLength={5}
                   placeholder="5 digits"
+                  disabled={isReadOnly}
                 />
               </div>
               <div>
@@ -524,6 +637,7 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
                   onChange={(e) => updateField('institution_number', e.target.value)}
                   maxLength={3}
                   placeholder="3 digits"
+                  disabled={isReadOnly}
                 />
               </div>
               <div>
@@ -531,6 +645,7 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
                 <Input
                   value={payee.account_number || ''}
                   onChange={(e) => updateField('account_number', e.target.value)}
+                  disabled={isReadOnly}
                 />
               </div>
             </>
@@ -540,14 +655,16 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
             <Input
               value={payee.bank_name || ''}
               onChange={(e) => updateField('bank_name', e.target.value)}
+              disabled={isReadOnly}
             />
           </div>
           <div>
             <Label>Account Type</Label>
             <select
-              className="flex h-10 w-full rounded-xl border border-input bg-transparent px-3 py-1 text-sm"
+              className="flex h-10 w-full rounded-xl border border-input bg-transparent px-3 py-1 text-sm disabled:opacity-50"
               value={payee.account_type || ''}
               onChange={(e) => updateField('account_type', e.target.value || null)}
+              disabled={isReadOnly}
             >
               <option value="">Not specified</option>
               <option value="checking">Checking</option>
@@ -557,23 +674,28 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
         </CardContent>
       </Card>
 
-      {/* Actions */}
-      <Separator />
-      <div className="flex gap-3 justify-end">
-        <Button variant="outline" onClick={handleSave} disabled={saving} className="rounded-xl">
-          {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-          Save Changes
-        </Button>
-        <Button
-          onClick={handleSendVerification}
-          disabled={sending || !payee.contact_phone || (verification?.status === 'sent')}
-          className="bg-[#045B3F] hover:bg-[#034830] rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.1),0_2px_8px_rgba(4,91,63,0.15)]"
-        >
-          {sending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-          <Mail className="h-4 w-4 mr-2" />
-          {verification?.status === 'sent' ? 'Verification Sent' : 'Send Verification SMS'}
-        </Button>
-      </div>
+      {/* Actions — only show when editable */}
+      {!isFinalized && !isPayeeConfirmed && (
+        <>
+          <Separator />
+          <div className="flex gap-3 justify-end">
+            <Button variant="outline" onClick={handleSave} disabled={saving || sending} className="rounded-xl gap-2">
+              {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+              <Save className="h-4 w-4" />
+              Save
+            </Button>
+            <Button
+              onClick={handleSaveAndSend}
+              disabled={sending || saving || !payee.contact_phone || (verification?.status === 'sent')}
+              className="bg-[#045B3F] hover:bg-[#034830] rounded-xl gap-2 shadow-[0_1px_2px_rgba(0,0,0,0.1),0_2px_8px_rgba(4,91,63,0.15)]"
+            >
+              {sending && <Loader2 className="h-4 w-4 animate-spin" />}
+              <Send className="h-4 w-4" />
+              {verification?.status === 'sent' ? 'Verification Sent' : 'Save & Send Verification'}
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

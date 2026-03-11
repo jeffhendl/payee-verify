@@ -17,6 +17,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'payeeId and invoiceId are required' }, { status: 400 });
     }
 
+    // Get sender info from user metadata
+    const senderFirstName = user.user_metadata?.first_name || user.email?.split('@')[0] || 'Someone';
+    const senderCompany = user.user_metadata?.company_name || 'a company';
+
     // Fetch the payee
     const { data: payee, error: payeeError } = await supabase
       .from('payees')
@@ -31,6 +35,8 @@ export async function POST(request: Request) {
     if (!payee.contact_phone) {
       return NextResponse.json({ error: 'Payee does not have a phone number. Add one on the review page.' }, { status: 400 });
     }
+
+    // Save any pending edits to the payee before sending (the client should save first, but just in case)
 
     // Create verification record
     const { data: verification, error: verificationError } = await supabase
@@ -57,8 +63,9 @@ export async function POST(request: Request) {
     try {
       await sendVerificationSms({
         to: payee.contact_phone,
-        payeeCompany: payee.company_name || 'Unknown Company',
-        invoiceNumber: payee.invoice_number || 'N/A',
+        senderFirstName,
+        senderCompany,
+        payeeCompany: payee.company_name || 'your company',
         invoiceAmount: payee.invoice_amount || 0,
         currency: payee.currency || 'USD',
         verifyUrl,

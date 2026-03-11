@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, XCircle, Loader2, Building2 } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2, Building2, AlertTriangle } from 'lucide-react';
 
 interface VerificationResponseFormProps {
   token: string;
@@ -30,6 +30,38 @@ function maskValue(value: string | null): string {
   return '•'.repeat(value.length - 4) + value.slice(-4);
 }
 
+interface BankingErrors {
+  transitNumber?: string;
+  institutionNumber?: string;
+  accountNumber?: string;
+  abaRouting?: string;
+}
+
+function validateBanking(country: string, fields: { transitNumber: string; institutionNumber: string; accountNumber: string; abaRouting: string }): BankingErrors {
+  const errors: BankingErrors = {};
+
+  if (country === 'US') {
+    if (fields.abaRouting && !/^\d{9}$/.test(fields.abaRouting)) {
+      errors.abaRouting = 'Routing number must be exactly 9 digits';
+    }
+    if (fields.accountNumber && !/^\d{7,12}$/.test(fields.accountNumber)) {
+      errors.accountNumber = 'Account number must be 7–12 digits';
+    }
+  } else {
+    if (fields.transitNumber && !/^\d{5}$/.test(fields.transitNumber)) {
+      errors.transitNumber = 'Transit number must be exactly 5 digits';
+    }
+    if (fields.institutionNumber && !/^\d{3}$/.test(fields.institutionNumber)) {
+      errors.institutionNumber = 'Institution number must be exactly 3 digits';
+    }
+    if (fields.accountNumber && !/^\d{7,12}$/.test(fields.accountNumber)) {
+      errors.accountNumber = 'Account number must be 7–12 digits';
+    }
+  }
+
+  return errors;
+}
+
 export function VerificationResponseForm({ token, payee, bankingMissing }: VerificationResponseFormProps) {
   const [mode, setMode] = useState<'choose' | 'confirm' | 'deny' | 'submitted'>('choose');
   const [respondentName, setRespondentName] = useState('');
@@ -45,6 +77,7 @@ export function VerificationResponseForm({ token, payee, bankingMissing }: Verif
   const [transitNumber, setTransitNumber] = useState('');
   const [institutionNumber, setInstitutionNumber] = useState('');
   const [accountType, setAccountType] = useState('');
+  const [bankingErrors, setBankingErrors] = useState<BankingErrors>({});
 
   const formattedAmount = payee.invoice_amount
     ? new Intl.NumberFormat('en-US', { style: 'currency', currency: payee.currency }).format(payee.invoice_amount)
@@ -56,14 +89,24 @@ export function VerificationResponseForm({ token, payee, bankingMissing }: Verif
       return;
     }
 
-    // If confirming and banking is missing, require at least account number
-    if (confirmed && bankingMissing && !accountNumber) {
-      setError('Please provide your banking details to complete verification');
-      return;
+    // If confirming and banking is missing, validate banking fields
+    if (confirmed && bankingMissing) {
+      if (!accountNumber) {
+        setError('Please provide your banking details to complete verification');
+        return;
+      }
+
+      const validationErrors = validateBanking(payee.country, { transitNumber, institutionNumber, accountNumber, abaRouting });
+      if (Object.keys(validationErrors).length > 0) {
+        setBankingErrors(validationErrors);
+        setError('Please fix the banking detail errors below');
+        return;
+      }
     }
 
     setSubmitting(true);
     setError(null);
+    setBankingErrors({});
 
     const bankingDetails = bankingMissing && confirmed ? {
       bank_name: bankName || null,
@@ -200,20 +243,39 @@ export function VerificationResponseForm({ token, payee, bankingMissing }: Verif
                   <Label className="text-[#383B3E]">ABA Routing Number</Label>
                   <Input
                     value={abaRouting}
-                    onChange={(e) => setAbaRouting(e.target.value)}
+                    onChange={(e) => {
+                      const v = e.target.value.replace(/\D/g, '').slice(0, 9);
+                      setAbaRouting(v);
+                      if (bankingErrors.abaRouting) setBankingErrors(prev => ({ ...prev, abaRouting: undefined }));
+                    }}
                     placeholder="9 digits"
                     maxLength={9}
-                    className="rounded-xl h-11 bg-white"
+                    className={`rounded-xl h-11 bg-white ${bankingErrors.abaRouting ? 'border-[#F12D1B]' : ''}`}
                   />
+                  {bankingErrors.abaRouting && (
+                    <p className="text-xs text-[#F12D1B] mt-1 flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" /> {bankingErrors.abaRouting}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <Label className="text-[#383B3E]">Account Number</Label>
                   <Input
                     value={accountNumber}
-                    onChange={(e) => setAccountNumber(e.target.value)}
-                    placeholder="Account number"
-                    className="rounded-xl h-11 bg-white"
+                    onChange={(e) => {
+                      const v = e.target.value.replace(/\D/g, '').slice(0, 12);
+                      setAccountNumber(v);
+                      if (bankingErrors.accountNumber) setBankingErrors(prev => ({ ...prev, accountNumber: undefined }));
+                    }}
+                    placeholder="7–12 digits"
+                    maxLength={12}
+                    className={`rounded-xl h-11 bg-white ${bankingErrors.accountNumber ? 'border-[#F12D1B]' : ''}`}
                   />
+                  {bankingErrors.accountNumber && (
+                    <p className="text-xs text-[#F12D1B] mt-1 flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" /> {bankingErrors.accountNumber}
+                    </p>
+                  )}
                 </div>
               </>
             ) : (
@@ -222,30 +284,58 @@ export function VerificationResponseForm({ token, payee, bankingMissing }: Verif
                   <Label className="text-[#383B3E]">Transit Number</Label>
                   <Input
                     value={transitNumber}
-                    onChange={(e) => setTransitNumber(e.target.value)}
+                    onChange={(e) => {
+                      const v = e.target.value.replace(/\D/g, '').slice(0, 5);
+                      setTransitNumber(v);
+                      if (bankingErrors.transitNumber) setBankingErrors(prev => ({ ...prev, transitNumber: undefined }));
+                    }}
                     placeholder="5 digits"
                     maxLength={5}
-                    className="rounded-xl h-11 bg-white"
+                    className={`rounded-xl h-11 bg-white ${bankingErrors.transitNumber ? 'border-[#F12D1B]' : ''}`}
                   />
+                  {bankingErrors.transitNumber && (
+                    <p className="text-xs text-[#F12D1B] mt-1 flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" /> {bankingErrors.transitNumber}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <Label className="text-[#383B3E]">Institution Number</Label>
                   <Input
                     value={institutionNumber}
-                    onChange={(e) => setInstitutionNumber(e.target.value)}
+                    onChange={(e) => {
+                      const v = e.target.value.replace(/\D/g, '').slice(0, 3);
+                      setInstitutionNumber(v);
+                      if (bankingErrors.institutionNumber) setBankingErrors(prev => ({ ...prev, institutionNumber: undefined }));
+                    }}
                     placeholder="3 digits"
                     maxLength={3}
-                    className="rounded-xl h-11 bg-white"
+                    className={`rounded-xl h-11 bg-white ${bankingErrors.institutionNumber ? 'border-[#F12D1B]' : ''}`}
                   />
+                  {bankingErrors.institutionNumber && (
+                    <p className="text-xs text-[#F12D1B] mt-1 flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" /> {bankingErrors.institutionNumber}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <Label className="text-[#383B3E]">Account Number</Label>
                   <Input
                     value={accountNumber}
-                    onChange={(e) => setAccountNumber(e.target.value)}
-                    placeholder="Account number"
-                    className="rounded-xl h-11 bg-white"
+                    onChange={(e) => {
+                      const v = e.target.value.replace(/\D/g, '').slice(0, 12);
+                      setAccountNumber(v);
+                      if (bankingErrors.accountNumber) setBankingErrors(prev => ({ ...prev, accountNumber: undefined }));
+                    }}
+                    placeholder="7–12 digits"
+                    maxLength={12}
+                    className={`rounded-xl h-11 bg-white ${bankingErrors.accountNumber ? 'border-[#F12D1B]' : ''}`}
                   />
+                  {bankingErrors.accountNumber && (
+                    <p className="text-xs text-[#F12D1B] mt-1 flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" /> {bankingErrors.accountNumber}
+                    </p>
+                  )}
                 </div>
               </>
             )}

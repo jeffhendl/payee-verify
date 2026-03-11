@@ -6,12 +6,24 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
+
+function validatePassword(password: string): string | null {
+  if (password.length < 8) return 'Password must be at least 8 characters';
+  if (!/[A-Z]/.test(password)) return 'Must include an uppercase letter';
+  if (!/[a-z]/.test(password)) return 'Must include a lowercase letter';
+  if (!/[0-9]/.test(password)) return 'Must include a number';
+  return null;
+}
 
 export function AuthForm() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [companyName, setCompanyName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -33,22 +45,55 @@ export function AuthForm() {
         router.refresh();
       }
     } else {
+      // Validate password
+      const passwordError = validatePassword(password);
+      if (passwordError) {
+        setError(passwordError);
+        setLoading(false);
+        return;
+      }
+
+      if (!companyName.trim()) {
+        setError('Company name is required');
+        setLoading(false);
+        return;
+      }
+
+      if (!firstName.trim()) {
+        setError('First name is required');
+        setLoading(false);
+        return;
+      }
+
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          data: {
+            company_name: companyName.trim(),
+            first_name: firstName.trim(),
+            last_name: lastName.trim(),
+          },
         },
       });
       if (error) {
         setError(error.message);
       } else {
-        setMessage('Check your email for a confirmation link.');
+        // Auto-login after signup (skip email confirmation for hackathon)
+        const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+        if (loginError) {
+          setMessage('Account created! Please sign in.');
+        } else {
+          router.push('/');
+          router.refresh();
+        }
       }
     }
 
     setLoading(false);
   };
+
+  const passwordStrength = !isLogin && password.length > 0 ? validatePassword(password) : null;
 
   return (
     <div>
@@ -62,6 +107,48 @@ export function AuthForm() {
       </p>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+        {!isLogin && (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="companyName" className="text-[13px] font-medium text-[#383B3E]">Company name</Label>
+              <Input
+                id="companyName"
+                type="text"
+                placeholder="Acme Inc."
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+                required
+                className="h-11 rounded-xl bg-[#F7F7F7] border-transparent text-[15px] placeholder:text-[#A1A1AA] focus:bg-white focus:border-[#045B3F] focus:ring-2 focus:ring-[#045B3F]/10"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="firstName" className="text-[13px] font-medium text-[#383B3E]">First name</Label>
+                <Input
+                  id="firstName"
+                  type="text"
+                  placeholder="Jeff"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  required
+                  className="h-11 rounded-xl bg-[#F7F7F7] border-transparent text-[15px] placeholder:text-[#A1A1AA] focus:bg-white focus:border-[#045B3F] focus:ring-2 focus:ring-[#045B3F]/10"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName" className="text-[13px] font-medium text-[#383B3E]">Last name</Label>
+                <Input
+                  id="lastName"
+                  type="text"
+                  placeholder="Hendler"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  className="h-11 rounded-xl bg-[#F7F7F7] border-transparent text-[15px] placeholder:text-[#A1A1AA] focus:bg-white focus:border-[#045B3F] focus:ring-2 focus:ring-[#045B3F]/10"
+                />
+              </div>
+            </div>
+          </>
+        )}
+
         <div className="space-y-2">
           <Label htmlFor="email" className="text-[13px] font-medium text-[#383B3E]">Email address</Label>
           <Input
@@ -76,16 +163,42 @@ export function AuthForm() {
         </div>
         <div className="space-y-2">
           <Label htmlFor="password" className="text-[13px] font-medium text-[#383B3E]">Password</Label>
-          <Input
-            id="password"
-            type="password"
-            placeholder="Enter your password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            minLength={6}
-            className="h-11 rounded-xl bg-[#F7F7F7] border-transparent text-[15px] placeholder:text-[#A1A1AA] focus:bg-white focus:border-[#045B3F] focus:ring-2 focus:ring-[#045B3F]/10"
-          />
+          <div className="relative">
+            <Input
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              placeholder={isLogin ? 'Enter your password' : 'Min 8 chars, uppercase, lowercase, number'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={isLogin ? 1 : 8}
+              className="h-11 rounded-xl bg-[#F7F7F7] border-transparent text-[15px] placeholder:text-[#A1A1AA] focus:bg-white focus:border-[#045B3F] focus:ring-2 focus:ring-[#045B3F]/10 pr-10"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A1A1AA] hover:text-[#71717A]"
+            >
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
+          {!isLogin && password.length > 0 && (
+            <div className="space-y-1 mt-2">
+              <div className="flex gap-1">
+                {[
+                  password.length >= 8,
+                  /[A-Z]/.test(password),
+                  /[a-z]/.test(password),
+                  /[0-9]/.test(password),
+                ].map((met, i) => (
+                  <div key={i} className={`h-1 flex-1 rounded-full ${met ? 'bg-[#30AC2E]' : 'bg-[#E5E5E5]'}`} />
+                ))}
+              </div>
+              <p className={`text-xs ${passwordStrength ? 'text-[#F12D1B]' : 'text-[#30AC2E]'}`}>
+                {passwordStrength || 'Password meets requirements'}
+              </p>
+            </div>
+          )}
         </div>
 
         {error && (

@@ -44,14 +44,32 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
 
   const verification = verifications?.[0] || null;
 
+  // Dynamic title based on status
+  const isPendingReview = (invoice as Invoice).status === 'pending_review';
+  const isVerified = (invoice as Invoice).status === 'verified';
+  const isDenied = (invoice as Invoice).status === 'denied';
+
+  let title = 'Review Extracted Data';
+  let subtitle = `Review and edit the details extracted from`;
+  if (isPendingReview) {
+    title = 'Review Payee Response';
+    subtitle = `The payee has confirmed the details. Review and approve for`;
+  } else if (isVerified) {
+    title = 'Verified Invoice';
+    subtitle = `This invoice has been verified and approved for`;
+  } else if (isDenied) {
+    title = 'Rejected Invoice';
+    subtitle = `This invoice was rejected for`;
+  }
+
   return (
     <div className="min-h-screen bg-white">
       <NavBar />
       <main className="max-w-3xl mx-auto px-6 py-10">
         <div className="mb-8">
-          <h1 className="text-2xl font-semibold text-[#1D1D1D] tracking-[-0.02em]">Review Extracted Data</h1>
+          <h1 className="text-2xl font-semibold text-[#1D1D1D] tracking-[-0.02em]">{title}</h1>
           <p className="text-[#71717A] mt-1.5 text-[15px]">
-            Review and edit the details extracted from <strong>{(invoice as Invoice).file_name}</strong>
+            {subtitle} <strong>{(invoice as Invoice).file_name}</strong>
           </p>
         </div>
         <ExtractedDataForm

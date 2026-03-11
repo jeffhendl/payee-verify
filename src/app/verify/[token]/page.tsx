@@ -93,7 +93,12 @@ export default async function VerifyPage({ params }: { params: Promise<{ token: 
         <p className="text-[#92979C] mt-1">
           Please review the following invoice details and confirm they are correct
         </p>
-        <p className="text-xs text-[#92979C] mt-2">Powered by <span className="font-semibold text-[#045B3F]">Loop</span></p>
+        <p className="text-xs text-[#92979C] mt-2">
+          Powered by{' '}
+          <a href="https://bankonloop.com" target="_blank" rel="noopener noreferrer" className="font-semibold text-[#045B3F] hover:underline">
+            Loop
+          </a>
+        </p>
       </div>
       <VerificationResponseForm token={token} payee={payee} bankingMissing={bankingMissing} />
     </div>

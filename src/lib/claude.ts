@@ -2,7 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import type { ParsedInvoiceData } from './types';
 
 function getClient() {
-  const apiKey = process.env.INVOICE_PARSER_API_KEY;
+  const apiKey = process.env.ANTHROPIC_API_KEY || process.env.INVOICE_PARSER_API_KEY;
   if (!apiKey) {
     throw new Error('ANTHROPIC_API_KEY environment variable is not set');
   }
