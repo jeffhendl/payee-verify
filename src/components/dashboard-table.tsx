@@ -53,7 +53,7 @@ export function DashboardTable({ invoices }: { invoices: DashboardInvoice[] }) {
           <TableHead>Amount</TableHead>
           <TableHead>Status</TableHead>
           <TableHead>Uploaded</TableHead>
-          <TableHead className="text-right">Actions</TableHead>
+          <TableHead className="text-right pr-6">Actions</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -74,9 +74,9 @@ export function DashboardTable({ invoices }: { invoices: DashboardInvoice[] }) {
                 <InvoiceStatusBadge status={invoice.status} />
               </TableCell>
               <TableCell className="text-[#92979C]">{timeAgo(invoice.created_at)}</TableCell>
-              <TableCell className="text-right">
+              <TableCell className="text-right pr-4">
                 <Link href={`/review/${invoice.id}`}>
-                  <Button variant="ghost" size="sm">
+                  <Button variant="ghost" size="sm" className="text-[13px]">
                     Review
                   </Button>
                 </Link>

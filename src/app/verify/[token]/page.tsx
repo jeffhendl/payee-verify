@@ -78,6 +78,11 @@ export default async function VerifyPage({ params }: { params: Promise<{ token: 
     );
   }
 
+  // Check if banking details are missing
+  const bankingMissing = payee.country === 'US'
+    ? (!payee.aba_routing_number || !payee.account_number)
+    : (!payee.transit_number || !payee.institution_number || !payee.account_number);
+
   return (
     <div className="min-h-screen bg-white px-4 py-8">
       <div className="text-center mb-8">
@@ -90,7 +95,7 @@ export default async function VerifyPage({ params }: { params: Promise<{ token: 
         </p>
         <p className="text-xs text-[#92979C] mt-2">Powered by <span className="font-semibold text-[#045B3F]">Loop</span></p>
       </div>
-      <VerificationResponseForm token={token} payee={payee} />
+      <VerificationResponseForm token={token} payee={payee} bankingMissing={bankingMissing} />
     </div>
   );
 }

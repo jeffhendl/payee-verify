@@ -1,4 +1,4 @@
-export type InvoiceStatus = 'uploaded' | 'parsing' | 'parsed' | 'verification_sent' | 'verified' | 'failed';
+export type InvoiceStatus = 'uploaded' | 'parsing' | 'parsed' | 'verification_sent' | 'pending_review' | 'verified' | 'denied' | 'failed';
 export type VerificationStatus = 'pending' | 'sent' | 'opened' | 'confirmed' | 'denied' | 'expired' | 'failed';
 export type Country = 'US' | 'CA';
 

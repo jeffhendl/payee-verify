@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { NavBar } from '@/components/nav-bar';
 import { DashboardTable } from '@/components/dashboard-table';
+import { FailedUploadsLog } from '@/components/failed-uploads-log';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { FileUp } from 'lucide-react';
@@ -29,10 +30,15 @@ export default async function DashboardPage() {
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 
+  // Split into active and failed
+  const allInvoices = invoices || [];
+  const activeInvoices = allInvoices.filter(i => i.status !== 'failed');
+  const failedInvoices = allInvoices.filter(i => i.status === 'failed');
+
   return (
     <div className="min-h-screen bg-white">
       <NavBar />
-      <main className="max-w-6xl mx-auto px-6 py-10">
+      <main className="max-w-6xl mx-auto px-8 py-12">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-2xl font-semibold text-[#1D1D1D] tracking-[-0.02em]">Dashboard</h1>
@@ -46,8 +52,12 @@ export default async function DashboardPage() {
           </Link>
         </div>
         <div className="bg-white rounded-2xl border border-[#E8EAEC] shadow-[0_1px_3px_rgba(0,0,0,0.04),0_6px_24px_rgba(0,0,0,0.03)] overflow-hidden">
-          <DashboardTable invoices={invoices || []} />
+          <DashboardTable invoices={activeInvoices} />
         </div>
+
+        {failedInvoices.length > 0 && (
+          <FailedUploadsLog invoices={failedInvoices} />
+        )}
       </main>
     </div>
   );

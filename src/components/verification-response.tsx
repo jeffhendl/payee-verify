@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2, Building2 } from 'lucide-react';
 
 interface VerificationResponseFormProps {
   token: string;
@@ -22,6 +22,7 @@ interface VerificationResponseFormProps {
     institution_number: string | null;
     country: string;
   };
+  bankingMissing: boolean;
 }
 
 function maskValue(value: string | null): string {
@@ -29,13 +30,21 @@ function maskValue(value: string | null): string {
   return '•'.repeat(value.length - 4) + value.slice(-4);
 }
 
-export function VerificationResponseForm({ token, payee }: VerificationResponseFormProps) {
+export function VerificationResponseForm({ token, payee, bankingMissing }: VerificationResponseFormProps) {
   const [mode, setMode] = useState<'choose' | 'confirm' | 'deny' | 'submitted'>('choose');
   const [respondentName, setRespondentName] = useState('');
   const [respondentRole, setRespondentRole] = useState('');
   const [discrepancies, setDiscrepancies] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Banking details state (only used when bankingMissing is true)
+  const [bankName, setBankName] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [abaRouting, setAbaRouting] = useState('');
+  const [transitNumber, setTransitNumber] = useState('');
+  const [institutionNumber, setInstitutionNumber] = useState('');
+  const [accountType, setAccountType] = useState('');
 
   const formattedAmount = payee.invoice_amount
     ? new Intl.NumberFormat('en-US', { style: 'currency', currency: payee.currency }).format(payee.invoice_amount)
@@ -47,8 +56,23 @@ export function VerificationResponseForm({ token, payee }: VerificationResponseF
       return;
     }
 
+    // If confirming and banking is missing, require at least account number
+    if (confirmed && bankingMissing && !accountNumber) {
+      setError('Please provide your banking details to complete verification');
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
+
+    const bankingDetails = bankingMissing && confirmed ? {
+      bank_name: bankName || null,
+      account_number: accountNumber || null,
+      aba_routing_number: payee.country === 'US' ? (abaRouting || null) : null,
+      transit_number: payee.country === 'CA' ? (transitNumber || null) : null,
+      institution_number: payee.country === 'CA' ? (institutionNumber || null) : null,
+      account_type: accountType || null,
+    } : undefined;
 
     try {
       const res = await fetch('/api/verifications/respond', {
@@ -60,6 +84,7 @@ export function VerificationResponseForm({ token, payee }: VerificationResponseF
           respondent_name: respondentName,
           respondent_role: respondentRole,
           discrepancies: confirmed ? null : discrepancies,
+          banking_details: bankingDetails,
         }),
       });
 
@@ -108,40 +133,137 @@ export function VerificationResponseForm({ token, payee }: VerificationResponseF
             <span className="text-[#92979C]">Amount</span>
             <span className="font-medium">{formattedAmount}</span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-[#92979C]">Bank Name</span>
-            <span className="font-medium">{payee.bank_name || 'N/A'}</span>
-          </div>
-          {payee.country === 'US' && (
+          {!bankingMissing && (
             <>
               <div className="flex justify-between">
-                <span className="text-[#92979C]">Routing Number</span>
-                <span className="font-mono">{maskValue(payee.aba_routing_number)}</span>
+                <span className="text-[#92979C]">Bank Name</span>
+                <span className="font-medium">{payee.bank_name || 'N/A'}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-[#92979C]">Account Number</span>
-                <span className="font-mono">{maskValue(payee.account_number)}</span>
-              </div>
-            </>
-          )}
-          {payee.country === 'CA' && (
-            <>
-              <div className="flex justify-between">
-                <span className="text-[#92979C]">Transit Number</span>
-                <span className="font-mono">{maskValue(payee.transit_number)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[#92979C]">Institution Number</span>
-                <span className="font-mono">{maskValue(payee.institution_number)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[#92979C]">Account Number</span>
-                <span className="font-mono">{maskValue(payee.account_number)}</span>
-              </div>
+              {payee.country === 'US' && (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-[#92979C]">Routing Number</span>
+                    <span className="font-mono">{maskValue(payee.aba_routing_number)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[#92979C]">Account Number</span>
+                    <span className="font-mono">{maskValue(payee.account_number)}</span>
+                  </div>
+                </>
+              )}
+              {payee.country === 'CA' && (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-[#92979C]">Transit Number</span>
+                    <span className="font-mono">{maskValue(payee.transit_number)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[#92979C]">Institution Number</span>
+                    <span className="font-mono">{maskValue(payee.institution_number)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[#92979C]">Account Number</span>
+                    <span className="font-mono">{maskValue(payee.account_number)}</span>
+                  </div>
+                </>
+              )}
             </>
           )}
         </CardContent>
       </Card>
+
+      {/* Banking Details Collection (when missing) */}
+      {bankingMissing && mode === 'choose' && (
+        <Card className="rounded-2xl border-[#045B3F] bg-[#F0FFF8] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2">
+              <Building2 className="h-5 w-5 text-[#045B3F]" />
+              <CardTitle className="text-lg text-[#045B3F]">Banking Details Needed</CardTitle>
+            </div>
+            <p className="text-sm text-[#4A7C6A] mt-1">
+              The invoice did not include banking details. Please provide them below to complete the verification.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div>
+              <Label className="text-[#383B3E]">Bank Name</Label>
+              <Input
+                value={bankName}
+                onChange={(e) => setBankName(e.target.value)}
+                placeholder="e.g. Chase, TD Bank, RBC"
+                className="rounded-xl h-11 bg-white"
+              />
+            </div>
+            {payee.country === 'US' ? (
+              <>
+                <div>
+                  <Label className="text-[#383B3E]">ABA Routing Number</Label>
+                  <Input
+                    value={abaRouting}
+                    onChange={(e) => setAbaRouting(e.target.value)}
+                    placeholder="9 digits"
+                    maxLength={9}
+                    className="rounded-xl h-11 bg-white"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[#383B3E]">Account Number</Label>
+                  <Input
+                    value={accountNumber}
+                    onChange={(e) => setAccountNumber(e.target.value)}
+                    placeholder="Account number"
+                    className="rounded-xl h-11 bg-white"
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <Label className="text-[#383B3E]">Transit Number</Label>
+                  <Input
+                    value={transitNumber}
+                    onChange={(e) => setTransitNumber(e.target.value)}
+                    placeholder="5 digits"
+                    maxLength={5}
+                    className="rounded-xl h-11 bg-white"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[#383B3E]">Institution Number</Label>
+                  <Input
+                    value={institutionNumber}
+                    onChange={(e) => setInstitutionNumber(e.target.value)}
+                    placeholder="3 digits"
+                    maxLength={3}
+                    className="rounded-xl h-11 bg-white"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[#383B3E]">Account Number</Label>
+                  <Input
+                    value={accountNumber}
+                    onChange={(e) => setAccountNumber(e.target.value)}
+                    placeholder="Account number"
+                    className="rounded-xl h-11 bg-white"
+                  />
+                </div>
+              </>
+            )}
+            <div>
+              <Label className="text-[#383B3E]">Account Type</Label>
+              <select
+                className="flex h-11 w-full rounded-xl border border-input bg-white px-3 py-1 text-sm"
+                value={accountType}
+                onChange={(e) => setAccountType(e.target.value)}
+              >
+                <option value="">Select type</option>
+                <option value="checking">Checking</option>
+                <option value="savings">Savings</option>
+              </select>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Action Buttons or Form */}
       {mode === 'choose' && (
@@ -208,13 +330,13 @@ export function VerificationResponseForm({ token, payee }: VerificationResponseF
             {error && <p className="text-sm text-[#F12D1B]">{error}</p>}
 
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setMode('choose')}>
+              <Button variant="outline" onClick={() => setMode('choose')} className="rounded-xl">
                 Back
               </Button>
               <Button
                 onClick={() => handleSubmit(mode === 'confirm')}
                 disabled={submitting}
-                className={mode === 'confirm' ? 'bg-[#045B3F] hover:bg-[#034830]' : ''}
+                className={`rounded-xl ${mode === 'confirm' ? 'bg-[#045B3F] hover:bg-[#034830]' : ''}`}
                 variant={mode === 'deny' ? 'destructive' : 'default'}
               >
                 {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
