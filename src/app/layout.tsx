@@ -8,6 +8,9 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 export const metadata: Metadata = {
   title: "Payee Verify",
   description: "Invoice payee verification made simple",
+  icons: {
+    icon: "/favicon.png",
+  },
 };
 
 export default function RootLayout({

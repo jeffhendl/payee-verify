@@ -76,7 +76,7 @@ export function DashboardTable({ invoices }: { invoices: DashboardInvoice[] }) {
               <TableCell className="text-[#92979C]">{timeAgo(invoice.created_at)}</TableCell>
               <TableCell className="text-right pr-4">
                 <Link href={`/review/${invoice.id}`}>
-                  <Button variant="ghost" size="sm" className="text-[13px]">
+                  <Button variant="outline" size="sm" className="text-[13px] rounded-lg border-[#045B3F] text-[#045B3F] hover:bg-[#045B3F] hover:text-white">
                     Review
                   </Button>
                 </Link>

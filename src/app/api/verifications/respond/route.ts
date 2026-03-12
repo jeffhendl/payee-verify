@@ -69,13 +69,17 @@ export async function POST(request: Request) {
     }
 
     // Update invoice status — confirmed goes to pending_review (user must approve), denied goes to denied
-    await supabaseAdmin
+    const { error: invoiceUpdateError } = await supabaseAdmin
       .from('invoices')
       .update({
         status: confirmed ? 'pending_review' : 'denied',
         updated_at: new Date().toISOString(),
       })
       .eq('id', verification.invoice_id);
+
+    if (invoiceUpdateError) {
+      console.error('Failed to update invoice status:', invoiceUpdateError);
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

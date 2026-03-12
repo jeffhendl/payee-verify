@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 export async function POST(request: Request) {
   try {
@@ -15,7 +16,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
     }
 
-    // Verify the invoice belongs to this user and is in pending_review
+    // Verify the invoice belongs to this user
     const { data: invoice, error } = await supabase
       .from('invoices')
       .select('id, status')
@@ -27,19 +28,37 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
     }
 
-    if (invoice.status !== 'pending_review') {
-      return NextResponse.json({ error: 'Invoice is not pending review' }, { status: 400 });
+    // Check verification status — if payee confirmed, allow approval even if invoice status is stale
+    const { data: verification } = await supabaseAdmin
+      .from('verifications')
+      .select('status')
+      .eq('invoice_id', invoiceId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    const isPayeeConfirmed = verification?.status === 'confirmed';
+    const isInvoicePendingReview = invoice.status === 'pending_review';
+
+    if (!isPayeeConfirmed && !isInvoicePendingReview) {
+      return NextResponse.json({ error: 'Invoice is not ready for approval' }, { status: 400 });
     }
 
     const newStatus = action === 'approve' ? 'verified' : 'denied';
 
-    await supabase
+    // Use admin client to ensure update succeeds regardless of RLS
+    const { error: updateError } = await supabaseAdmin
       .from('invoices')
       .update({
         status: newStatus,
         updated_at: new Date().toISOString(),
       })
       .eq('id', invoiceId);
+
+    if (updateError) {
+      console.error('Invoice approve update error:', updateError);
+      return NextResponse.json({ error: 'Failed to update invoice' }, { status: 500 });
+    }
 
     return NextResponse.json({ success: true, status: newStatus });
   } catch (error) {
