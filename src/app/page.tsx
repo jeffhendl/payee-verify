@@ -16,7 +16,7 @@ export default async function DashboardPage() {
 
   const firstName = user.user_metadata?.first_name || 'there';
 
-  // Fetch invoices with payee data
+  // Fetch invoices with payee and verification data
   const { data: invoices } = await supabase
     .from('invoices')
     .select(`
@@ -28,13 +28,28 @@ export default async function DashboardPage() {
         company_name,
         invoice_amount,
         currency
+      ),
+      verifications (
+        status
       )
     `)
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 
-  // Split into active and failed
-  const allInvoices = invoices || [];
+  // Fix stale statuses: if verification is confirmed but invoice still shows verification_sent
+  const allInvoices = (invoices || []).map(inv => {
+    const verStatus = (inv.verifications as { status: string }[])?.[0]?.status;
+    if (inv.status === 'verification_sent' && verStatus === 'confirmed') {
+      // Fix it in the DB in the background
+      supabase.from('invoices').update({ status: 'pending_review', updated_at: new Date().toISOString() }).eq('id', inv.id).then(() => {});
+      return { ...inv, status: 'pending_review' };
+    }
+    if (inv.status === 'verification_sent' && verStatus === 'denied') {
+      supabase.from('invoices').update({ status: 'denied', updated_at: new Date().toISOString() }).eq('id', inv.id).then(() => {});
+      return { ...inv, status: 'denied' };
+    }
+    return inv;
+  });
   const activeInvoices = allInvoices.filter(i => i.status !== 'failed');
   const failedInvoices = allInvoices.filter(i => i.status === 'failed');
 

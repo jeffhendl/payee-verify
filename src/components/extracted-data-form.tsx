@@ -674,9 +674,31 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
       {/* Banking Details */}
       <Card className="rounded-2xl border-[#E8EAEC] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
         <CardHeader>
-          <CardTitle className="text-lg tracking-[-0.01em]">
-            Banking Details {payee.country === 'CA' ? '(Canada)' : '(United States)'}
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg tracking-[-0.01em]">Banking Details</CardTitle>
+            {!isReadOnly && (
+              <select
+                className="rounded-lg border border-input bg-transparent px-3 py-1.5 text-sm font-medium text-[#045B3F]"
+                value={payee.country}
+                onChange={(e) => {
+                  updateField('country', e.target.value);
+                  // Clear banking fields when switching country
+                  if (e.target.value === 'US') {
+                    updateField('transit_number', null);
+                    updateField('institution_number', null);
+                  } else {
+                    updateField('aba_routing_number', null);
+                  }
+                }}
+              >
+                <option value="US">United States</option>
+                <option value="CA">Canada</option>
+              </select>
+            )}
+            {isReadOnly && (
+              <span className="text-sm text-[#71717A]">{payee.country === 'CA' ? 'Canada' : 'United States'}</span>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="grid grid-cols-2 gap-4">
           {payee.country === 'US' ? (
