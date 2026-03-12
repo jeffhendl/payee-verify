@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
-import { Loader2, Send, Save, CheckCircle, XCircle, Clock, AlertTriangle, ShieldCheck, ShieldX, Mail, User, Briefcase, Building2, AlertCircle, Phone, Globe } from 'lucide-react';
+import { Loader2, Send, Save, CheckCircle, XCircle, Clock, AlertTriangle, ShieldCheck, ShieldX, Mail, User, Briefcase, Building2, AlertCircle, Phone, PhoneOff, Play } from 'lucide-react';
 import type { Payee, Invoice, Verification, VerificationResponse, VerificationStatus, InvoiceStatus } from '@/lib/types';
 
 interface ExtractedDataFormProps {
@@ -18,15 +18,30 @@ interface ExtractedDataFormProps {
   verification: Verification | null;
 }
 
-const verificationStatusConfig: Record<VerificationStatus, { label: string; color: string; icon: React.ReactNode }> = {
-  pending: { label: 'Pending', color: 'bg-[#E5E5E5] text-[#606265]', icon: <Clock className="h-4 w-4" /> },
-  sent: { label: 'SMS Sent', color: 'bg-[#CFE5F3] text-[#045B3F]', icon: <Mail className="h-4 w-4" /> },
-  opened: { label: 'Opened', color: 'bg-[#EED9F7] text-[#8F5CCF]', icon: <Mail className="h-4 w-4" /> },
-  confirmed: { label: 'Payee Confirmed', color: 'bg-[#F2FCE4] text-[#30AC2E]', icon: <CheckCircle className="h-4 w-4" /> },
-  denied: { label: 'Discrepancy Flagged', color: 'bg-[#FEF1ED] text-[#F12D1B]', icon: <XCircle className="h-4 w-4" /> },
-  expired: { label: 'Expired', color: 'bg-[#E5E5E5] text-[#606265]', icon: <Clock className="h-4 w-4" /> },
-  failed: { label: 'Failed', color: 'bg-[#FEF1ED] text-[#F12D1B]', icon: <XCircle className="h-4 w-4" /> },
-};
+function getVerificationStatusConfig(status: VerificationStatus, isPhoneCall: boolean): { label: string; color: string; icon: React.ReactNode } {
+  const configs: Record<VerificationStatus, { label: string; color: string; icon: React.ReactNode }> = {
+    pending: { label: 'Pending', color: 'bg-[#E5E5E5] text-[#606265]', icon: <Clock className="h-4 w-4" /> },
+    sent: {
+      label: isPhoneCall ? 'Call Initiated' : 'SMS Sent',
+      color: 'bg-[#CFE5F3] text-[#045B3F]',
+      icon: isPhoneCall ? <Phone className="h-4 w-4" /> : <Mail className="h-4 w-4" />,
+    },
+    opened: {
+      label: isPhoneCall ? 'Call Completed' : 'Opened',
+      color: 'bg-[#EED9F7] text-[#8F5CCF]',
+      icon: isPhoneCall ? <Phone className="h-4 w-4" /> : <Mail className="h-4 w-4" />,
+    },
+    confirmed: { label: 'Payee Confirmed', color: 'bg-[#F2FCE4] text-[#30AC2E]', icon: <CheckCircle className="h-4 w-4" /> },
+    denied: { label: 'Discrepancy Flagged', color: 'bg-[#FEF1ED] text-[#F12D1B]', icon: <XCircle className="h-4 w-4" /> },
+    expired: { label: 'Expired', color: 'bg-[#E5E5E5] text-[#606265]', icon: <Clock className="h-4 w-4" /> },
+    failed: {
+      label: isPhoneCall ? 'Call Failed' : 'Failed',
+      color: 'bg-[#FEF1ED] text-[#F12D1B]',
+      icon: isPhoneCall ? <PhoneOff className="h-4 w-4" /> : <XCircle className="h-4 w-4" />,
+    },
+  };
+  return configs[status] || { label: status, color: 'bg-[#E5E5E5] text-[#606265]', icon: <Clock className="h-4 w-4" /> };
+}
 
 interface MissingField {
   label: string;
@@ -108,13 +123,17 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
   const errors = missingFields.filter(f => f.severity === 'error');
   const warnings = missingFields.filter(f => f.severity === 'warning');
 
+  const isPhoneCall = verification?.type === 'phone' || verification?.type === 'phone_call' ||
+    (verification?.response_data as Record<string, unknown>)?.call_type === 'ai_phone';
+  const isCallFailed = verification?.status === 'failed' && isPhoneCall;
+  const verificationInProgress = verification?.status === 'sent' || verification?.status === 'opened';
   const isPayeeConfirmed = verification?.status === 'confirmed' || invoiceStatus === 'pending_review';
   const isFinalized = invoiceStatus === 'verified' || invoiceStatus === 'denied';
   const isReadOnly = isPayeeConfirmed || isFinalized;
 
   // Poll for verification status updates
   useEffect(() => {
-    if (!verification || verification.status === 'confirmed' || verification.status === 'denied' || verification.status === 'expired') {
+    if (!verification || verification.status === 'confirmed' || verification.status === 'denied' || verification.status === 'expired' || verification.status === 'failed') {
       return;
     }
 
@@ -131,9 +150,17 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
           setInvoiceStatus('denied');
           clearInterval(interval);
           toast.error('Payee flagged a discrepancy.');
+        } else if (updated.status === 'failed') {
+          clearInterval(interval);
+          const rd = updated.response_data as Record<string, unknown> | null;
+          const reason = rd?.disconnection_reason as string || 'unknown';
+          toast.error(`Call failed: ${reason.replace(/_/g, ' ')}`);
+        } else if (updated.status === 'opened') {
+          clearInterval(interval);
+          toast.info('Call completed — responses recorded.');
         }
       }
-    }, 10000);
+    }, 5000); // Poll every 5s for calls (faster feedback)
 
     return () => clearInterval(interval);
   }, [verification]);
@@ -453,9 +480,9 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg tracking-[-0.01em]">Payee Response</CardTitle>
-              <Badge className={`gap-1 ${verificationStatusConfig[verification.status as VerificationStatus]?.color || ''}`}>
-                {verificationStatusConfig[verification.status as VerificationStatus]?.icon}
-                {verificationStatusConfig[verification.status as VerificationStatus]?.label || verification.status}
+              <Badge className={`gap-1 ${getVerificationStatusConfig(verification.status as VerificationStatus, isPhoneCall)?.color || ''}`}>
+                {getVerificationStatusConfig(verification.status as VerificationStatus, isPhoneCall)?.icon}
+                {getVerificationStatusConfig(verification.status as VerificationStatus, isPhoneCall)?.label || verification.status}
               </Badge>
             </div>
           </CardHeader>
@@ -559,14 +586,88 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <span className="text-sm font-medium">Verification Status:</span>
-              <Badge className={`gap-1 ${verificationStatusConfig[verification.status as VerificationStatus]?.color || ''}`}>
-                {verificationStatusConfig[verification.status as VerificationStatus]?.icon}
-                {verificationStatusConfig[verification.status as VerificationStatus]?.label || verification.status}
+              <Badge className={`gap-1 ${getVerificationStatusConfig(verification.status as VerificationStatus, isPhoneCall)?.color || ''}`}>
+                {getVerificationStatusConfig(verification.status as VerificationStatus, isPhoneCall)?.icon}
+                {getVerificationStatusConfig(verification.status as VerificationStatus, isPhoneCall)?.label || verification.status}
               </Badge>
             </div>
+            {/* Show failure reason for failed calls */}
+            {isCallFailed && (() => {
+              const rd = verification.response_data as Record<string, unknown> | null;
+              const reason = rd?.disconnection_reason as string;
+              return reason ? (
+                <p className="text-sm text-[#F12D1B] mt-2">
+                  Reason: {reason.replace(/_/g, ' ')}
+                </p>
+              ) : null;
+            })()}
           </CardContent>
         </Card>
       )}
+
+      {/* Call Details — transcript, recording, summary */}
+      {verification && isPhoneCall && verification.response_data && (() => {
+        const rd = verification.response_data as Record<string, unknown>;
+        const transcript = rd?.transcript as string | null;
+        const recordingUrl = rd?.recording_url as string | null;
+        const callSummary = rd?.call_summary as string | null;
+        const userSentiment = rd?.user_sentiment as string | null;
+        const durationMs = rd?.duration_ms as number | null;
+        const durationSec = durationMs ? Math.round(durationMs / 1000) : 0;
+        const hasContent = transcript || recordingUrl || callSummary;
+
+        if (!hasContent) return null;
+
+        return (
+          <Card className="rounded-2xl border-[#E8EAEC] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+            <CardHeader>
+              <CardTitle className="text-lg tracking-[-0.01em] flex items-center gap-2">
+                <Phone className="h-5 w-5 text-[#045B3F]" />
+                Call Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Call metadata row */}
+              <div className="flex items-center gap-4 text-sm text-[#92979C]">
+                {durationSec > 0 && (
+                  <span>Duration: {Math.floor(durationSec / 60)}:{String(durationSec % 60).padStart(2, '0')}</span>
+                )}
+                {userSentiment && userSentiment !== 'Unknown' && (
+                  <span>Sentiment: {userSentiment}</span>
+                )}
+              </div>
+
+              {/* Call Summary */}
+              {callSummary && (
+                <div className="p-3 bg-[#F7F7F7] rounded-xl border border-[#E8EAEC]">
+                  <p className="text-xs font-semibold text-[#606265] mb-1">Call Summary</p>
+                  <p className="text-sm text-[#383B3E]">{callSummary}</p>
+                </div>
+              )}
+
+              {/* Recording */}
+              {recordingUrl && (
+                <div className="p-3 bg-[#F7F7F7] rounded-xl border border-[#E8EAEC]">
+                  <p className="text-xs font-semibold text-[#606265] mb-2">Call Recording</p>
+                  <audio controls className="w-full" preload="none">
+                    <source src={recordingUrl} />
+                  </audio>
+                </div>
+              )}
+
+              {/* Transcript */}
+              {transcript && (
+                <div className="p-3 bg-[#F7F7F7] rounded-xl border border-[#E8EAEC]">
+                  <p className="text-xs font-semibold text-[#606265] mb-1">Transcript</p>
+                  <div className="text-sm text-[#383B3E] whitespace-pre-wrap max-h-[300px] overflow-y-auto">
+                    {transcript}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {/* Missing Fields Warnings — only show when editable */}
       {!isReadOnly && missingFields.length > 0 && (
@@ -921,22 +1022,22 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
             </Button>
             <Button
               onClick={handleSaveAndSend}
-              disabled={sending || saving || calling || !payee.contact_phone || (verification?.status === 'sent')}
+              disabled={sending || saving || calling || !payee.contact_phone || verificationInProgress}
               className="bg-[#045B3F] hover:bg-[#034830] rounded-xl gap-2 shadow-[0_1px_2px_rgba(0,0,0,0.1),0_2px_8px_rgba(4,91,63,0.15)]"
             >
               {sending && <Loader2 className="h-4 w-4 animate-spin" />}
               <Send className="h-4 w-4" />
-              {verification?.status === 'sent' ? 'Verification Sent' : 'Save & Send SMS'}
+              {verificationInProgress ? 'Verification Sent' : 'Save & Send SMS'}
             </Button>
             <div className="relative group">
               <Button
                 onClick={handleCallPayee}
-                disabled={calling || saving || sending || !phoneLocalNumber || !isCallSupported || (verification?.status === 'sent')}
+                disabled={calling || saving || sending || !phoneLocalNumber || !isCallSupported || verificationInProgress}
                 className="bg-[#1D1D1D] hover:bg-[#383B3E] rounded-xl gap-2 shadow-[0_1px_2px_rgba(0,0,0,0.1)]"
               >
                 {calling && <Loader2 className="h-4 w-4 animate-spin" />}
                 <Phone className="h-4 w-4" />
-                {verification?.status === 'sent' ? 'Call Initiated' : 'Save & Call Payee'}
+                {verificationInProgress ? (isPhoneCall ? 'Call Initiated' : 'Verification Sent') : 'Save & Call Payee'}
               </Button>
               {!isCallSupported && phoneLocalNumber && (
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-[#1D1D1D] text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
