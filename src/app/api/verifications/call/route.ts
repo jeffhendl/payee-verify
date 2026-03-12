@@ -41,7 +41,7 @@ export async function POST(request: Request) {
       .insert({
         payee_id: payeeId,
         invoice_id: invoiceId,
-        type: 'phone_call',
+        type: 'phone',
         status: 'pending',
       })
       .select()
