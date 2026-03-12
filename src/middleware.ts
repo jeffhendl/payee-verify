@@ -6,6 +6,7 @@ export async function middleware(request: NextRequest) {
   if (
     request.nextUrl.pathname.startsWith('/verify/') ||
     request.nextUrl.pathname.startsWith('/api/verifications/respond') ||
+    request.nextUrl.pathname.startsWith('/api/verifications/call-webhook') ||
     request.nextUrl.pathname.startsWith('/blog')
   ) {
     return NextResponse.next();

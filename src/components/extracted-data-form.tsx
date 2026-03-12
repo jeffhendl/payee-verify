@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
-import { Loader2, Send, Save, CheckCircle, XCircle, Clock, AlertTriangle, ShieldCheck, ShieldX, Mail, User, Briefcase, Building2, AlertCircle } from 'lucide-react';
+import { Loader2, Send, Save, CheckCircle, XCircle, Clock, AlertTriangle, ShieldCheck, ShieldX, Mail, User, Briefcase, Building2, AlertCircle, Phone } from 'lucide-react';
 import type { Payee, Invoice, Verification, VerificationStatus, InvoiceStatus } from '@/lib/types';
 
 interface ExtractedDataFormProps {
@@ -61,6 +61,7 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
   const [invoiceStatus, setInvoiceStatus] = useState<InvoiceStatus>(invoice.status);
   const [saving, setSaving] = useState(false);
   const [sending, setSending] = useState(false);
+  const [calling, setCalling] = useState(false);
   const [approving, setApproving] = useState(false);
   const supabase = createClient();
 
@@ -221,6 +222,84 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
       toast.error(error instanceof Error ? error.message : 'Failed to send');
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleCallPayee = async () => {
+    if (!payee.contact_phone) {
+      toast.error('Payee does not have a phone number. Please add one first.');
+      return;
+    }
+
+    setCalling(true);
+
+    // Save first
+    const saveResult = await supabase
+      .from('payees')
+      .update({
+        company_name: payee.company_name,
+        contact_name: payee.contact_name,
+        contact_email: payee.contact_email,
+        contact_phone: payee.contact_phone,
+        address_line1: payee.address_line1,
+        address_line2: payee.address_line2,
+        city: payee.city,
+        state_province: payee.state_province,
+        postal_code: payee.postal_code,
+        country: payee.country,
+        aba_routing_number: payee.aba_routing_number,
+        account_number: payee.account_number,
+        transit_number: payee.transit_number,
+        institution_number: payee.institution_number,
+        bank_name: payee.bank_name,
+        account_type: payee.account_type,
+        invoice_number: payee.invoice_number,
+        invoice_amount: payee.invoice_amount,
+        invoice_date: payee.invoice_date,
+        due_date: payee.due_date,
+        currency: payee.currency,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', payee.id);
+
+    if (saveResult.error) {
+      toast.error('Failed to save changes');
+      setCalling(false);
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/verifications/call', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payeeId: payee.id, invoiceId: invoice.id }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to initiate call');
+      }
+
+      const data = await res.json();
+      setVerification({
+        id: data.verificationId,
+        payee_id: payee.id,
+        invoice_id: invoice.id,
+        type: 'phone_call',
+        status: 'sent',
+        token: '',
+        sent_at: new Date().toISOString(),
+        responded_at: null,
+        response_data: { call_id: data.callId, call_type: 'ai_phone' },
+        expires_at: new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString(),
+        created_at: new Date().toISOString(),
+      });
+      setInvoiceStatus('verification_sent');
+      toast.success(`AI verification call initiated to ${payee.contact_phone}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to call');
+    } finally {
+      setCalling(false);
     }
   };
 
@@ -790,12 +869,21 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
             </Button>
             <Button
               onClick={handleSaveAndSend}
-              disabled={sending || saving || !payee.contact_phone || (verification?.status === 'sent')}
+              disabled={sending || saving || calling || !payee.contact_phone || (verification?.status === 'sent')}
               className="bg-[#045B3F] hover:bg-[#034830] rounded-xl gap-2 shadow-[0_1px_2px_rgba(0,0,0,0.1),0_2px_8px_rgba(4,91,63,0.15)]"
             >
               {sending && <Loader2 className="h-4 w-4 animate-spin" />}
               <Send className="h-4 w-4" />
-              {verification?.status === 'sent' ? 'Verification Sent' : 'Save & Send Verification'}
+              {verification?.status === 'sent' ? 'Verification Sent' : 'Save & Send SMS'}
+            </Button>
+            <Button
+              onClick={handleCallPayee}
+              disabled={calling || saving || sending || !payee.contact_phone || (verification?.status === 'sent')}
+              className="bg-[#1D1D1D] hover:bg-[#383B3E] rounded-xl gap-2 shadow-[0_1px_2px_rgba(0,0,0,0.1)]"
+            >
+              {calling && <Loader2 className="h-4 w-4 animate-spin" />}
+              <Phone className="h-4 w-4" />
+              {verification?.status === 'sent' ? 'Call Initiated' : 'Save & Call Payee'}
             </Button>
           </div>
         </>
