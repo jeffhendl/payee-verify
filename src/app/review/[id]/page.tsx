@@ -90,10 +90,10 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
               verification={verification as Verification | null}
             />
           </div>
-          <div className="hidden lg:flex lg:flex-col gap-6 sticky top-24 self-start max-h-[calc(100vh-7rem)] overflow-y-auto min-w-0">
+          <div className="hidden lg:flex lg:flex-col gap-6 sticky top-24 self-start max-h-[calc(100vh-7rem)] min-w-0">
             <PdfPreview invoiceId={id} />
             {/* Loop promo banner */}
-            <div className="rounded-2xl overflow-hidden border border-[#C6E7D4] bg-gradient-to-br from-[#045B3F] to-[#034830]">
+            <div className="rounded-2xl overflow-hidden border border-[#C6E7D4] bg-gradient-to-br from-[#045B3F] to-[#034830] flex-shrink-0">
               <div className="px-6 py-6 space-y-4">
                 <div className="flex items-center gap-2">
                   <img src="/loop-logo.svg" alt="Loop" className="h-6 brightness-0 invert" />

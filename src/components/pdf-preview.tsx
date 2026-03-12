@@ -13,7 +13,6 @@ export function PdfPreview({ invoiceId }: { invoiceId: string }) {
   const [zoom, setZoom] = useState(1);
   const [pageNum, setPageNum] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
-  const [containerHeight, setContainerHeight] = useState<number | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const pdfDocRef = useRef<any>(null);
@@ -80,12 +79,6 @@ export function PdfPreview({ invoiceId }: { invoiceId: string }) {
       const baseScale = containerWidth / page.getViewport({ scale: 1 }).width;
       const viewport = page.getViewport({ scale: baseScale * zoom });
 
-      // Lock container height on first render (at zoom=1) so zooming doesn't resize the card
-      if (containerHeight === null) {
-        const fitViewport = page.getViewport({ scale: baseScale });
-        setContainerHeight(Math.min(fitViewport.height, 700));
-      }
-
       canvas.width = viewport.width * 2; // 2x for retina
       canvas.height = viewport.height * 2;
       canvas.style.width = `${viewport.width}px`;
@@ -103,7 +96,7 @@ export function PdfPreview({ invoiceId }: { invoiceId: string }) {
     } finally {
       setRendering(false);
     }
-  }, [pageNum, zoom, containerHeight]);
+  }, [pageNum, zoom]);
 
   useEffect(() => {
     if (pdfDocRef.current && totalPages > 0) {
@@ -118,7 +111,7 @@ export function PdfPreview({ invoiceId }: { invoiceId: string }) {
   const handleNextPage = () => setPageNum(p => Math.min(p + 1, totalPages));
 
   return (
-    <Card className="rounded-2xl border-[#E8EAEC] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden flex-shrink-0">
+    <Card className="rounded-2xl border-[#E8EAEC] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden min-h-0 flex-1 flex flex-col">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg tracking-[-0.01em] flex items-center gap-2">
@@ -148,7 +141,7 @@ export function PdfPreview({ invoiceId }: { invoiceId: string }) {
           </div>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-1 min-h-0 flex flex-col">
         {loading && (
           <div className="flex items-center justify-center bg-[#F7F7F7] rounded-xl" style={{ aspectRatio: '8.5/11' }}>
             <Loader2 className="h-6 w-6 animate-spin text-[#92979C]" />
@@ -164,8 +157,7 @@ export function PdfPreview({ invoiceId }: { invoiceId: string }) {
           <>
             <div
               ref={containerRef}
-              className="rounded-xl border border-[#E8EAEC] overflow-auto bg-[#525659] relative w-full"
-              style={{ height: containerHeight ? `${containerHeight}px` : undefined, maxHeight: '700px' }}
+              className="rounded-xl border border-[#E8EAEC] overflow-auto bg-[#525659] relative w-full flex-1 min-h-0"
             >
               {rendering && (
                 <div className="absolute inset-0 flex items-center justify-center bg-[#525659]/50 z-10">
