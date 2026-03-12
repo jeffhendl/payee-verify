@@ -1,7 +1,13 @@
+import { redirect } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
 import { AuthForm } from '@/components/auth-form';
 import { ShieldCheck } from 'lucide-react';
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) redirect('/');
+
   return (
     <div className="min-h-screen bg-white flex">
       {/* Left side - branding */}
