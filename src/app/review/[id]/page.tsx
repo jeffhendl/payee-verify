@@ -90,7 +90,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
               verification={verification as Verification | null}
             />
           </div>
-          <div className="hidden lg:flex lg:flex-col gap-6">
+          <div className="hidden lg:flex lg:flex-col gap-6 sticky top-24 self-start max-h-[calc(100vh-7rem)] overflow-y-auto">
             <PdfPreview invoiceId={id} />
             {/* Loop promo banner */}
             <div className="rounded-2xl overflow-hidden border border-[#C6E7D4] bg-gradient-to-br from-[#045B3F] to-[#034830]">

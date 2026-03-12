@@ -50,7 +50,8 @@ export async function POST(request: Request) {
     }
 
     if (action === 'reject' && !isPayeeConfirmed && !isCallCompleted && !isPayeeDenied && !isInvoicePendingReview && !isVerificationSent) {
-      return NextResponse.json({ error: 'Invoice is not ready for rejection' }, { status: 400 });
+      console.error('Reject guard failed:', { verificationStatus: verification?.status, invoiceStatus: invoice.status });
+      return NextResponse.json({ error: `Invoice is not ready for rejection (verification: ${verification?.status}, invoice: ${invoice.status})` }, { status: 400 });
     }
 
     const newStatus = action === 'approve' ? 'verified' : 'denied';
@@ -65,8 +66,8 @@ export async function POST(request: Request) {
       .eq('id', invoiceId);
 
     if (updateError) {
-      console.error('Invoice approve update error:', updateError);
-      return NextResponse.json({ error: 'Failed to update invoice' }, { status: 500 });
+      console.error('Invoice approve update error:', updateError, { invoiceId, action, newStatus });
+      return NextResponse.json({ error: `Failed to update invoice: ${updateError.message}` }, { status: 500 });
     }
 
     return NextResponse.json({ success: true, status: newStatus });

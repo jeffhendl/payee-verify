@@ -36,10 +36,10 @@ export default async function DashboardPage() {
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 
-  // Fix stale statuses: if verification is confirmed but invoice still shows verification_sent
+  // Fix stale statuses: if verification is confirmed/opened/denied but invoice still shows verification_sent
   const allInvoices = (invoices || []).map(inv => {
     const verStatus = (inv.verifications as { status: string }[])?.[0]?.status;
-    if (inv.status === 'verification_sent' && verStatus === 'confirmed') {
+    if (inv.status === 'verification_sent' && (verStatus === 'confirmed' || verStatus === 'opened')) {
       // Fix it in the DB in the background
       supabase.from('invoices').update({ status: 'pending_review', updated_at: new Date().toISOString() }).eq('id', inv.id).then(() => {});
       return { ...inv, status: 'pending_review' };

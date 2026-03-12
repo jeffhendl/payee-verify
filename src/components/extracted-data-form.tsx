@@ -123,14 +123,17 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
   const errors = missingFields.filter(f => f.severity === 'error');
   const warnings = missingFields.filter(f => f.severity === 'warning');
 
-  const isPhoneCall = verification?.type === 'phone' || verification?.type === 'phone_call' ||
+  const isPhoneCall = verification?.type === 'phone_call' ||
     (verification?.response_data as Record<string, unknown>)?.call_type === 'ai_phone';
   const isCallFailed = verification?.status === 'failed' && isPhoneCall;
   const isCallCompleted = verification?.status === 'opened' && isPhoneCall;
   const verificationInProgress = verification?.status === 'sent' || (verification?.status === 'opened' && !isPhoneCall);
-  const isPayeeConfirmed = verification?.status === 'confirmed' || invoiceStatus === 'pending_review' || isCallCompleted;
+  const isPayeeConfirmed = verification?.status === 'confirmed' || isCallCompleted;
+  const isPendingReview = isPayeeConfirmed || invoiceStatus === 'pending_review';
   const isFinalized = invoiceStatus === 'verified' || invoiceStatus === 'denied';
-  const isReadOnly = isPayeeConfirmed || isFinalized;
+  const isReadOnly = isPendingReview || isFinalized;
+  // Allow retry when call failed
+  const canRetry = isCallFailed;
 
   // Poll for verification status updates
   const verificationId = verification?.id;
@@ -284,7 +287,7 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
         id: data.verificationId,
         payee_id: payee.id,
         invoice_id: invoice.id,
-        type: 'phone',
+        type: 'sms',
         status: 'sent',
         token: '',
         sent_at: new Date().toISOString(),
@@ -426,16 +429,20 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
 
   return (
     <div className="space-y-6">
-      {/* Pending Review Banner — show at top when payee has confirmed */}
-      {isPayeeConfirmed && !isFinalized && (
+      {/* Pending Review Banner — show at top when payee has confirmed or call completed */}
+      {isPendingReview && !isFinalized && (
         <Card className="rounded-2xl border-[#045B3F] bg-[#F0FFF8] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
           <CardContent className="pt-6 pb-6">
             <div className="flex items-start gap-3 mb-4">
               <ShieldCheck className="h-6 w-6 text-[#045B3F] flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-base font-semibold text-[#045B3F]">Payee Confirmed — Your Approval Required</p>
+                <p className="text-base font-semibold text-[#045B3F]">
+                  {isCallCompleted ? 'Call Completed — Your Review Required' : 'Payee Confirmed — Your Approval Required'}
+                </p>
                 <p className="text-sm text-[#4A7C6A] mt-1">
-                  The payee has confirmed the invoice details. Review the information below and approve or reject.
+                  {isCallCompleted
+                    ? 'The AI verification call has completed. Review the call results below and approve or reject.'
+                    : 'The payee has confirmed the invoice details. Review the information below and approve or reject.'}
                 </p>
               </div>
             </div>
@@ -1075,8 +1082,8 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
         </CardContent>
       </Card>
 
-      {/* Actions — only show when editable */}
-      {!isFinalized && !isPayeeConfirmed && (
+      {/* Actions — only show when editable or can retry */}
+      {!isFinalized && (!isPendingReview || canRetry) && (
         <>
           <Separator />
           <div className="flex gap-3 justify-end">
@@ -1087,22 +1094,22 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
             </Button>
             <Button
               onClick={handleSaveAndSend}
-              disabled={sending || saving || calling || !payee.contact_phone || verificationInProgress}
+              disabled={sending || saving || calling || !payee.contact_phone || (verificationInProgress && !canRetry)}
               className="bg-[#045B3F] hover:bg-[#034830] rounded-xl gap-2 shadow-[0_1px_2px_rgba(0,0,0,0.1),0_2px_8px_rgba(4,91,63,0.15)]"
             >
               {sending && <Loader2 className="h-4 w-4 animate-spin" />}
               <Send className="h-4 w-4" />
-              {verificationInProgress ? 'Verification Sent' : 'Save & Send SMS'}
+              {verificationInProgress && !isPhoneCall ? 'SMS Sent' : canRetry ? 'Retry via SMS' : 'Save & Send SMS'}
             </Button>
             <div className="relative group">
               <Button
                 onClick={handleCallPayee}
-                disabled={calling || saving || sending || !phoneLocalNumber || !isCallSupported || verificationInProgress}
+                disabled={calling || saving || sending || !phoneLocalNumber || !isCallSupported || (verificationInProgress && !canRetry)}
                 className="bg-[#1D1D1D] hover:bg-[#383B3E] rounded-xl gap-2 shadow-[0_1px_2px_rgba(0,0,0,0.1)]"
               >
                 {calling && <Loader2 className="h-4 w-4 animate-spin" />}
                 <Phone className="h-4 w-4" />
-                {verificationInProgress ? (isPhoneCall ? 'Call Initiated' : 'Verification Sent') : 'Save & Call Payee'}
+                {verificationInProgress && isPhoneCall ? 'Call Initiated' : canRetry ? 'Retry Call' : 'Save & Call Payee'}
               </Button>
               {!isCallSupported && phoneLocalNumber && (
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-[#1D1D1D] text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
