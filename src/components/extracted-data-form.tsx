@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
-import { Loader2, Send, Save, CheckCircle, XCircle, Clock, AlertTriangle, ShieldCheck, ShieldX, Mail, User, Briefcase, Building2, AlertCircle, Phone } from 'lucide-react';
+import { Loader2, Send, Save, CheckCircle, XCircle, Clock, AlertTriangle, ShieldCheck, ShieldX, Mail, User, Briefcase, Building2, AlertCircle, Phone, Globe } from 'lucide-react';
 import type { Payee, Invoice, Verification, VerificationResponse, VerificationStatus, InvoiceStatus } from '@/lib/types';
 
 interface ExtractedDataFormProps {
@@ -55,6 +55,33 @@ function getMissingFields(payee: Payee): MissingField[] {
   return missing;
 }
 
+const COUNTRY_CODES = [
+  { code: '+1', label: 'US/CA +1', flag: '🇺🇸🇨🇦' },
+  { code: '+44', label: 'UK +44', flag: '🇬🇧' },
+  { code: '+61', label: 'AU +61', flag: '🇦🇺' },
+  { code: '+33', label: 'FR +33', flag: '🇫🇷' },
+  { code: '+49', label: 'DE +49', flag: '🇩🇪' },
+  { code: '+91', label: 'IN +91', flag: '🇮🇳' },
+  { code: '+86', label: 'CN +86', flag: '🇨🇳' },
+  { code: '+81', label: 'JP +81', flag: '🇯🇵' },
+  { code: '+52', label: 'MX +52', flag: '🇲🇽' },
+  { code: '+55', label: 'BR +55', flag: '🇧🇷' },
+];
+
+function splitPhoneNumber(phone: string | null): { countryCode: string; localNumber: string } {
+  if (!phone) return { countryCode: '+1', localNumber: '' };
+  const cleaned = phone.replace(/\s/g, '');
+  // Try matching known country codes (longest first)
+  const sorted = [...COUNTRY_CODES].sort((a, b) => b.code.length - a.code.length);
+  for (const cc of sorted) {
+    if (cleaned.startsWith(cc.code)) {
+      return { countryCode: cc.code, localNumber: cleaned.slice(cc.code.length) };
+    }
+  }
+  // Default to +1 if no match
+  return { countryCode: '+1', localNumber: cleaned.replace(/^\+/, '') };
+}
+
 export function ExtractedDataForm({ invoice, payee: initialPayee, verification: initialVerification }: ExtractedDataFormProps) {
   const [payee, setPayee] = useState(initialPayee);
   const [verification, setVerification] = useState(initialVerification);
@@ -64,6 +91,18 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
   const [calling, setCalling] = useState(false);
   const [approving, setApproving] = useState(false);
   const supabase = createClient();
+
+  // Phone country code state
+  const initialPhone = splitPhoneNumber(initialPayee.contact_phone);
+  const [phoneCountryCode, setPhoneCountryCode] = useState(initialPhone.countryCode);
+  const [phoneLocalNumber, setPhoneLocalNumber] = useState(initialPhone.localNumber);
+  const isCallSupported = phoneCountryCode === '+1';
+  const fullPhoneNumber = phoneLocalNumber ? `${phoneCountryCode}${phoneLocalNumber}` : '';
+
+  // Keep payee.contact_phone in sync
+  useEffect(() => {
+    setPayee(prev => ({ ...prev, contact_phone: fullPhoneNumber || null }));
+  }, [phoneCountryCode, phoneLocalNumber]);
 
   const missingFields = useMemo(() => getMissingFields(payee), [payee]);
   const errors = missingFields.filter(f => f.severity === 'error');
@@ -679,13 +718,25 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
           </div>
           <div>
             <Label>Phone</Label>
-            <Input
-              value={payee.contact_phone || ''}
-              onChange={(e) => updateField('contact_phone', e.target.value)}
-              placeholder="+1XXXXXXXXXX"
-              className={!payee.contact_phone ? 'border-[#F5C518]' : ''}
-              disabled={isReadOnly}
-            />
+            <div className="flex gap-1.5">
+              <select
+                value={phoneCountryCode}
+                onChange={(e) => setPhoneCountryCode(e.target.value)}
+                disabled={isReadOnly}
+                className="h-9 rounded-md border border-input bg-background px-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 w-[110px] shrink-0"
+              >
+                {COUNTRY_CODES.map(cc => (
+                  <option key={cc.code} value={cc.code}>{cc.flag} {cc.code}</option>
+                ))}
+              </select>
+              <Input
+                value={phoneLocalNumber}
+                onChange={(e) => setPhoneLocalNumber(e.target.value.replace(/[^\d]/g, ''))}
+                placeholder="XXXXXXXXXX"
+                className={!phoneLocalNumber ? 'border-[#F5C518]' : ''}
+                disabled={isReadOnly}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -877,15 +928,23 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
               <Send className="h-4 w-4" />
               {verification?.status === 'sent' ? 'Verification Sent' : 'Save & Send SMS'}
             </Button>
-            <Button
-              onClick={handleCallPayee}
-              disabled={calling || saving || sending || !payee.contact_phone || (verification?.status === 'sent')}
-              className="bg-[#1D1D1D] hover:bg-[#383B3E] rounded-xl gap-2 shadow-[0_1px_2px_rgba(0,0,0,0.1)]"
-            >
-              {calling && <Loader2 className="h-4 w-4 animate-spin" />}
-              <Phone className="h-4 w-4" />
-              {verification?.status === 'sent' ? 'Call Initiated' : 'Save & Call Payee'}
-            </Button>
+            <div className="relative group">
+              <Button
+                onClick={handleCallPayee}
+                disabled={calling || saving || sending || !phoneLocalNumber || !isCallSupported || (verification?.status === 'sent')}
+                className="bg-[#1D1D1D] hover:bg-[#383B3E] rounded-xl gap-2 shadow-[0_1px_2px_rgba(0,0,0,0.1)]"
+              >
+                {calling && <Loader2 className="h-4 w-4 animate-spin" />}
+                <Phone className="h-4 w-4" />
+                {verification?.status === 'sent' ? 'Call Initiated' : 'Save & Call Payee'}
+              </Button>
+              {!isCallSupported && phoneLocalNumber && (
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-[#1D1D1D] text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                  Only US and Canadian numbers are supported for AI calls
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#1D1D1D]" />
+                </div>
+              )}
+            </div>
           </div>
         </>
       )}
