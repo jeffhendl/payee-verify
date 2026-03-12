@@ -38,10 +38,18 @@ export async function POST(request: Request) {
       .single();
 
     const isPayeeConfirmed = verification?.status === 'confirmed';
+    const isPayeeDenied = verification?.status === 'denied';
     const isInvoicePendingReview = invoice.status === 'pending_review';
+    const isVerificationSent = invoice.status === 'verification_sent';
 
-    if (!isPayeeConfirmed && !isInvoicePendingReview) {
+    // For approval: payee must have confirmed or invoice must be pending_review
+    // For rejection: allow if payee denied, payee confirmed, pending review, or verification was sent
+    if (action === 'approve' && !isPayeeConfirmed && !isInvoicePendingReview) {
       return NextResponse.json({ error: 'Invoice is not ready for approval' }, { status: 400 });
+    }
+
+    if (action === 'reject' && !isPayeeConfirmed && !isPayeeDenied && !isInvoicePendingReview && !isVerificationSent) {
+      return NextResponse.json({ error: 'Invoice is not ready for rejection' }, { status: 400 });
     }
 
     const newStatus = action === 'approve' ? 'verified' : 'denied';

@@ -9,8 +9,9 @@ export function generateStaticParams() {
   }));
 }
 
-export function generateMetadata({ params }: { params: { slug: string } }) {
-  const post = getBlogPost(params.slug);
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const post = getBlogPost(slug);
   if (!post) return { title: 'Post Not Found | Payee Verify' };
   return {
     title: `${post.title} | Payee Verify Blog`,
@@ -18,8 +19,9 @@ export function generateMetadata({ params }: { params: { slug: string } }) {
   };
 }
 
-export default function BlogPostPage({ params }: { params: { slug: string } }) {
-  const post = getBlogPost(params.slug);
+export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const post = getBlogPost(slug);
 
   if (!post) {
     notFound();
@@ -30,7 +32,7 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
       {/* Nav */}
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-[#E8EAEC]">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/blog" className="flex items-center gap-2.5">
+          <Link href="/" className="flex items-center gap-2.5">
             <div className="h-8 w-8 rounded-lg bg-[#045B3F] flex items-center justify-center">
               <ShieldCheck className="h-4.5 w-4.5 text-white" />
             </div>
@@ -42,6 +44,12 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
             </div>
           </Link>
           <div className="flex items-center gap-3">
+            <Link
+              href="/blog"
+              className="text-[13px] font-medium text-[#045B3F] hover:text-[#034a33] transition-colors px-3 py-2"
+            >
+              Blog
+            </Link>
             <Link
               href="/login"
               className="text-[13px] font-medium text-[#71717A] hover:text-[#1D1D1D] transition-colors px-3 py-2"
