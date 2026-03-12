@@ -5,8 +5,9 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    // Retell sends call data when the call ends
-    const { call_id, call_status, metadata, transcript, call_analysis } = body;
+    // Retell nests all call data under body.call
+    const call = body.call || body;
+    const { call_id, call_status, metadata, transcript, call_analysis, disconnection_reason } = call;
 
     if (!metadata?.verification_id) {
       console.error('Retell webhook: no verification_id in metadata', body);
@@ -18,7 +19,7 @@ export async function POST(request: Request) {
 
     // Determine outcome from the call
     // call_analysis may contain custom analysis fields from Retell agent
-    const callSuccessful = call_status === 'ended';
+    const callSuccessful = call_status === 'ended' || call_status === 'registered' || disconnection_reason === 'user_hangup' || disconnection_reason === 'agent_hangup';
     const payeeConfirmed = call_analysis?.payee_confirmed === true || call_analysis?.payee_confirmed === 'true';
     const payeeDenied = call_analysis?.payee_denied === true || call_analysis?.payee_denied === 'true';
     const discrepancies = call_analysis?.discrepancies || '';
