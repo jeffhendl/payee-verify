@@ -126,44 +126,55 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
   const isPhoneCall = verification?.type === 'phone' || verification?.type === 'phone_call' ||
     (verification?.response_data as Record<string, unknown>)?.call_type === 'ai_phone';
   const isCallFailed = verification?.status === 'failed' && isPhoneCall;
-  const verificationInProgress = verification?.status === 'sent' || verification?.status === 'opened';
-  const isPayeeConfirmed = verification?.status === 'confirmed' || invoiceStatus === 'pending_review';
+  const isCallCompleted = verification?.status === 'opened' && isPhoneCall;
+  const verificationInProgress = verification?.status === 'sent' || (verification?.status === 'opened' && !isPhoneCall);
+  const isPayeeConfirmed = verification?.status === 'confirmed' || invoiceStatus === 'pending_review' || isCallCompleted;
   const isFinalized = invoiceStatus === 'verified' || invoiceStatus === 'denied';
   const isReadOnly = isPayeeConfirmed || isFinalized;
 
   // Poll for verification status updates
+  const verificationId = verification?.id;
+  const verificationStatus = verification?.status;
   useEffect(() => {
-    if (!verification || verification.status === 'confirmed' || verification.status === 'denied' || verification.status === 'expired' || verification.status === 'failed') {
-      return;
-    }
+    if (!verificationId || !verificationStatus) return;
+    // Stop polling for terminal states
+    const terminalStates = ['confirmed', 'denied', 'expired', 'failed', 'opened'];
+    if (terminalStates.includes(verificationStatus)) return;
 
+    let toastShown = false;
     const interval = setInterval(async () => {
-      const res = await fetch(`/api/verifications/${verification.id}`);
+      const res = await fetch(`/api/verifications/${verificationId}`);
       if (res.ok) {
         const { verification: updated } = await res.json();
         setVerification(updated);
+        if (toastShown) return; // Don't show toast again
         if (updated.status === 'confirmed') {
           setInvoiceStatus('pending_review');
+          toastShown = true;
           clearInterval(interval);
           toast.info('Payee confirmed — please review and approve.');
         } else if (updated.status === 'denied') {
           setInvoiceStatus('denied');
+          toastShown = true;
           clearInterval(interval);
           toast.error('Payee flagged a discrepancy.');
         } else if (updated.status === 'failed') {
+          toastShown = true;
           clearInterval(interval);
           const rd = updated.response_data as Record<string, unknown> | null;
           const reason = rd?.disconnection_reason as string || 'unknown';
           toast.error(`Call failed: ${reason.replace(/_/g, ' ')}`);
         } else if (updated.status === 'opened') {
+          setInvoiceStatus('pending_review');
+          toastShown = true;
           clearInterval(interval);
-          toast.info('Call completed — responses recorded.');
+          toast.info('Call completed — please review the results.');
         }
       }
-    }, 5000); // Poll every 5s for calls (faster feedback)
+    }, 5000);
 
     return () => clearInterval(interval);
-  }, [verification]);
+  }, [verificationId, verificationStatus]);
 
   const updateField = (field: string, value: string | number | null) => {
     setPayee((prev) => ({ ...prev, [field]: value }));
@@ -474,8 +485,8 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
         </Card>
       )}
 
-      {/* Verification Status & Response Data — show above confidence when payee has responded */}
-      {verification && (verification.status === 'confirmed' || verification.status === 'denied') && responseData && (
+      {/* Verification Status & Response Data — show for email/SMS responses */}
+      {verification && (verification.status === 'confirmed' || verification.status === 'denied') && responseData && !isPhoneCall && (
         <Card className="rounded-2xl border-[#E8EAEC] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -605,35 +616,47 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
         </Card>
       )}
 
-      {/* Call Details — transcript, recording, summary */}
+      {/* Call Details — transcript, recording, summary, approve/reject */}
       {verification && isPhoneCall && verification.response_data && (() => {
         const rd = verification.response_data as Record<string, unknown>;
-        const transcript = rd?.transcript as string | null;
+        const callTranscript = rd?.transcript as string | null;
         const recordingUrl = rd?.recording_url as string | null;
         const callSummary = rd?.call_summary as string | null;
         const userSentiment = rd?.user_sentiment as string | null;
         const durationMs = rd?.duration_ms as number | null;
         const durationSec = durationMs ? Math.round(durationMs / 1000) : 0;
-        const hasContent = transcript || recordingUrl || callSummary;
+        const disconnectReason = rd?.disconnection_reason as string | null;
+        const callAnalysis = rd?.call_analysis as Record<string, unknown> | null;
+        const customData = callAnalysis?.custom_analysis_data as Record<string, unknown> | null;
+        const hasContent = callTranscript || recordingUrl || callSummary;
 
         if (!hasContent) return null;
 
         return (
           <Card className="rounded-2xl border-[#E8EAEC] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
             <CardHeader>
-              <CardTitle className="text-lg tracking-[-0.01em] flex items-center gap-2">
-                <Phone className="h-5 w-5 text-[#045B3F]" />
-                Call Details
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg tracking-[-0.01em] flex items-center gap-2">
+                  <Phone className="h-5 w-5 text-[#045B3F]" />
+                  Call Results
+                </CardTitle>
+                <Badge className={`gap-1 ${getVerificationStatusConfig(verification.status as VerificationStatus, true)?.color || ''}`}>
+                  {getVerificationStatusConfig(verification.status as VerificationStatus, true)?.icon}
+                  {getVerificationStatusConfig(verification.status as VerificationStatus, true)?.label || verification.status}
+                </Badge>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Call metadata row */}
-              <div className="flex items-center gap-4 text-sm text-[#92979C]">
+              <div className="flex flex-wrap items-center gap-4 text-sm text-[#92979C]">
                 {durationSec > 0 && (
                   <span>Duration: {Math.floor(durationSec / 60)}:{String(durationSec % 60).padStart(2, '0')}</span>
                 )}
                 {userSentiment && userSentiment !== 'Unknown' && (
-                  <span>Sentiment: {userSentiment}</span>
+                  <span>Sentiment: <span className={userSentiment === 'Positive' ? 'text-[#30AC2E]' : userSentiment === 'Negative' ? 'text-[#F12D1B]' : ''}>{userSentiment}</span></span>
+                )}
+                {disconnectReason && (
+                  <span>End reason: {disconnectReason.replace(/_/g, ' ')}</span>
                 )}
               </div>
 
@@ -645,10 +668,28 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
                 </div>
               )}
 
+              {/* Structured verification results from custom analysis */}
+              {customData && Object.keys(customData).length > 0 && (
+                <div className="p-3 bg-[#F0F9F4] rounded-xl border border-[#C6E7D4]">
+                  <p className="text-xs font-semibold text-[#045B3F] mb-2">Verification Results</p>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    {Object.entries(customData).map(([key, value]) => (
+                      <div key={key}>
+                        <span className="text-[#92979C]">{key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}:</span>{' '}
+                        <span className="font-medium">{String(value)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Recording */}
               {recordingUrl && (
                 <div className="p-3 bg-[#F7F7F7] rounded-xl border border-[#E8EAEC]">
-                  <p className="text-xs font-semibold text-[#606265] mb-2">Call Recording</p>
+                  <p className="text-xs font-semibold text-[#606265] mb-2 flex items-center gap-1.5">
+                    <Play className="h-3.5 w-3.5" />
+                    Call Recording
+                  </p>
                   <audio controls className="w-full" preload="none">
                     <source src={recordingUrl} />
                   </audio>
@@ -656,12 +697,36 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
               )}
 
               {/* Transcript */}
-              {transcript && (
+              {callTranscript && (
                 <div className="p-3 bg-[#F7F7F7] rounded-xl border border-[#E8EAEC]">
                   <p className="text-xs font-semibold text-[#606265] mb-1">Transcript</p>
                   <div className="text-sm text-[#383B3E] whitespace-pre-wrap max-h-[300px] overflow-y-auto">
-                    {transcript}
+                    {callTranscript}
                   </div>
+                </div>
+              )}
+
+              {/* Approve/Reject buttons for completed calls */}
+              {isCallCompleted && !isFinalized && (
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    onClick={() => handleApproval('approve')}
+                    disabled={approving}
+                    className="bg-[#045B3F] hover:bg-[#034830] rounded-xl gap-2 shadow-[0_1px_2px_rgba(0,0,0,0.1),0_2px_8px_rgba(4,91,63,0.15)]"
+                  >
+                    {approving && <Loader2 className="h-4 w-4 animate-spin" />}
+                    <ShieldCheck className="h-4 w-4" />
+                    Approve & Verify
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => handleApproval('reject')}
+                    disabled={approving}
+                    className="rounded-xl gap-2 text-[#F12D1B] border-[#F12D1B] hover:bg-[#FEF1ED] hover:text-[#F12D1B]"
+                  >
+                    <ShieldX className="h-4 w-4" />
+                    Reject
+                  </Button>
                 </div>
               )}
             </CardContent>

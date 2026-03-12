@@ -38,17 +38,18 @@ export async function POST(request: Request) {
       .single();
 
     const isPayeeConfirmed = verification?.status === 'confirmed';
+    const isCallCompleted = verification?.status === 'opened'; // phone call completed
     const isPayeeDenied = verification?.status === 'denied';
     const isInvoicePendingReview = invoice.status === 'pending_review';
     const isVerificationSent = invoice.status === 'verification_sent';
 
-    // For approval: payee must have confirmed or invoice must be pending_review
-    // For rejection: allow if payee denied, payee confirmed, pending review, or verification was sent
-    if (action === 'approve' && !isPayeeConfirmed && !isInvoicePendingReview) {
+    // For approval: payee must have confirmed, call completed, or invoice must be pending_review
+    // For rejection: allow if payee denied, payee confirmed, call completed, pending review, or verification was sent
+    if (action === 'approve' && !isPayeeConfirmed && !isCallCompleted && !isInvoicePendingReview) {
       return NextResponse.json({ error: 'Invoice is not ready for approval' }, { status: 400 });
     }
 
-    if (action === 'reject' && !isPayeeConfirmed && !isPayeeDenied && !isInvoicePendingReview && !isVerificationSent) {
+    if (action === 'reject' && !isPayeeConfirmed && !isCallCompleted && !isPayeeDenied && !isInvoicePendingReview && !isVerificationSent) {
       return NextResponse.json({ error: 'Invoice is not ready for rejection' }, { status: 400 });
     }
 
