@@ -89,17 +89,27 @@ export function VerificationResponseForm({ token, payee, bankingMissing }: Verif
       return;
     }
 
-    // If confirming and banking is missing, validate banking fields
+    // If confirming and banking is missing, validate all required banking fields
     if (confirmed && bankingMissing) {
-      if (!accountNumber) {
-        setError('Please provide your banking details to complete verification');
+      const missingFields: string[] = [];
+      if (payee.country === 'US') {
+        if (!abaRouting) missingFields.push('ABA Routing Number');
+        if (!accountNumber) missingFields.push('Account Number');
+      } else {
+        if (!transitNumber) missingFields.push('Transit Number');
+        if (!institutionNumber) missingFields.push('Institution Number');
+        if (!accountNumber) missingFields.push('Account Number');
+      }
+
+      if (missingFields.length > 0) {
+        setError(`Please provide: ${missingFields.join(', ')}`);
         return;
       }
 
       const validationErrors = validateBanking(payee.country, { transitNumber, institutionNumber, accountNumber, abaRouting });
       if (Object.keys(validationErrors).length > 0) {
         setBankingErrors(validationErrors);
-        setError('Please fix the banking detail errors below');
+        setError('Please fix the banking detail errors before submitting');
         return;
       }
     }
@@ -250,6 +260,8 @@ export function VerificationResponseForm({ token, payee, bankingMissing }: Verif
                     }}
                     placeholder="9 digits"
                     maxLength={9}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     className={`rounded-xl h-11 bg-white ${bankingErrors.abaRouting ? 'border-[#F12D1B]' : ''}`}
                   />
                   {bankingErrors.abaRouting && (
@@ -269,6 +281,8 @@ export function VerificationResponseForm({ token, payee, bankingMissing }: Verif
                     }}
                     placeholder="7–12 digits"
                     maxLength={12}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     className={`rounded-xl h-11 bg-white ${bankingErrors.accountNumber ? 'border-[#F12D1B]' : ''}`}
                   />
                   {bankingErrors.accountNumber && (
@@ -291,6 +305,8 @@ export function VerificationResponseForm({ token, payee, bankingMissing }: Verif
                     }}
                     placeholder="5 digits"
                     maxLength={5}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     className={`rounded-xl h-11 bg-white ${bankingErrors.transitNumber ? 'border-[#F12D1B]' : ''}`}
                   />
                   {bankingErrors.transitNumber && (
@@ -310,6 +326,8 @@ export function VerificationResponseForm({ token, payee, bankingMissing }: Verif
                     }}
                     placeholder="3 digits"
                     maxLength={3}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     className={`rounded-xl h-11 bg-white ${bankingErrors.institutionNumber ? 'border-[#F12D1B]' : ''}`}
                   />
                   {bankingErrors.institutionNumber && (
@@ -329,6 +347,8 @@ export function VerificationResponseForm({ token, payee, bankingMissing }: Verif
                     }}
                     placeholder="7–12 digits"
                     maxLength={12}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     className={`rounded-xl h-11 bg-white ${bankingErrors.accountNumber ? 'border-[#F12D1B]' : ''}`}
                   />
                   {bankingErrors.accountNumber && (
@@ -355,13 +375,51 @@ export function VerificationResponseForm({ token, payee, bankingMissing }: Verif
         </Card>
       )}
 
+      {/* Error message in choose mode */}
+      {mode === 'choose' && error && (
+        <div className="p-3 rounded-xl bg-[#FEF1ED] border border-[#FECDC6]">
+          <p className="text-sm text-[#F12D1B] flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+            {error}
+          </p>
+        </div>
+      )}
+
       {/* Action Buttons or Form */}
       {mode === 'choose' && (
         <div className="grid grid-cols-2 gap-4">
           <Button
             size="lg"
             className="h-16 rounded-2xl bg-[#045B3F] hover:bg-[#034830] shadow-[0_1px_2px_rgba(0,0,0,0.1),0_2px_8px_rgba(4,91,63,0.15)]"
-            onClick={() => setMode('confirm')}
+            onClick={() => {
+              // Validate banking fields before proceeding
+              if (bankingMissing) {
+                const missingFields: string[] = [];
+                if (payee.country === 'US') {
+                  if (!abaRouting) missingFields.push('ABA Routing Number');
+                  if (!accountNumber) missingFields.push('Account Number');
+                } else {
+                  if (!transitNumber) missingFields.push('Transit Number');
+                  if (!institutionNumber) missingFields.push('Institution Number');
+                  if (!accountNumber) missingFields.push('Account Number');
+                }
+
+                if (missingFields.length > 0) {
+                  setError(`Please provide: ${missingFields.join(', ')}`);
+                  return;
+                }
+
+                const validationErrors = validateBanking(payee.country, { transitNumber, institutionNumber, accountNumber, abaRouting });
+                if (Object.keys(validationErrors).length > 0) {
+                  setBankingErrors(validationErrors);
+                  setError('Please fix the banking detail errors before proceeding');
+                  return;
+                }
+              }
+              setError(null);
+              setBankingErrors({});
+              setMode('confirm');
+            }}
           >
             <CheckCircle className="h-5 w-5 mr-2" />
             Confirm Details

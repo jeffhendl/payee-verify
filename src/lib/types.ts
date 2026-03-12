@@ -68,4 +68,5 @@ export interface VerificationResponse {
   respondent_name: string;
   respondent_role: string;
   timestamp: string;
+  banking_details_provided?: boolean;
 }

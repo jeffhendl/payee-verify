@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
-import { Loader2, Send, Save, CheckCircle, XCircle, Clock, AlertTriangle, ShieldCheck, ShieldX, Mail, User, Briefcase } from 'lucide-react';
+import { Loader2, Send, Save, CheckCircle, XCircle, Clock, AlertTriangle, ShieldCheck, ShieldX, Mail, User, Briefcase, Building2, AlertCircle } from 'lucide-react';
 import type { Payee, Invoice, Verification, VerificationStatus, InvoiceStatus } from '@/lib/types';
 
 interface ExtractedDataFormProps {
@@ -248,6 +248,22 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
     }
   };
 
+  // Name mismatch detection
+  const respondentName = verification?.response_data?.respondent_name || '';
+  const contactName = payee.contact_name || '';
+  const hasNameMismatch = (() => {
+    if (!respondentName || !contactName) return false;
+    const normalize = (n: string) => n.toLowerCase().trim().replace(/[^a-z\s]/g, '');
+    const rNorm = normalize(respondentName);
+    const cNorm = normalize(contactName);
+    if (rNorm === cNorm) return false;
+    // Check if any name parts overlap (e.g. first or last name match)
+    const rParts = rNorm.split(/\s+/);
+    const cParts = cNorm.split(/\s+/);
+    const overlap = rParts.filter(p => p.length > 1 && cParts.includes(p));
+    return overlap.length === 0; // mismatch if zero name parts in common
+  })();
+
   const confidence = invoice.raw_extracted?.confidence ?? 0;
   const confidenceColor = confidence >= 0.8 ? 'bg-[#30AC2E]' : confidence >= 0.5 ? 'bg-[#D2F3A7]' : 'bg-[#F12D1B]';
 
@@ -325,6 +341,17 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
+            {/* Name mismatch warning */}
+            {hasNameMismatch && (
+              <div className="p-3 bg-[#FFF3CD] rounded-xl border border-[#F5C518] flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-[#856404] flex-shrink-0 mt-0.5" />
+                <div className="text-sm text-[#856404]">
+                  <p className="font-semibold">Name mismatch detected</p>
+                  <p>Respondent &quot;{verification.response_data.respondent_name}&quot; does not match the contact name &quot;{payee.contact_name}&quot; on the invoice. Please verify before approving.</p>
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-2 text-sm">
                 <User className="h-4 w-4 text-[#92979C]" />
@@ -342,10 +369,65 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
                 Responded {new Date(verification.responded_at).toLocaleString()}
               </p>
             )}
+
+            {/* Bank details provided by payee */}
+            {verification.response_data.banking_details_provided && (
+              <div className="mt-2 p-4 bg-[#F7F7F7] rounded-xl border border-[#E8EAEC]">
+                <div className="flex items-center gap-2 mb-2">
+                  <Building2 className="h-4 w-4 text-[#045B3F]" />
+                  <p className="text-sm font-semibold text-[#383B3E]">Banking Details Provided by Payee</p>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  {payee.bank_name && (
+                    <div><span className="text-[#92979C]">Bank:</span> <span className="font-medium">{payee.bank_name}</span></div>
+                  )}
+                  {payee.aba_routing_number && (
+                    <div><span className="text-[#92979C]">Routing:</span> <span className="font-mono font-medium">{'•'.repeat(Math.max(0, payee.aba_routing_number.length - 4))}{payee.aba_routing_number.slice(-4)}</span></div>
+                  )}
+                  {payee.transit_number && (
+                    <div><span className="text-[#92979C]">Transit:</span> <span className="font-mono font-medium">{payee.transit_number}</span></div>
+                  )}
+                  {payee.institution_number && (
+                    <div><span className="text-[#92979C]">Institution:</span> <span className="font-mono font-medium">{payee.institution_number}</span></div>
+                  )}
+                  {payee.account_number && (
+                    <div><span className="text-[#92979C]">Account:</span> <span className="font-mono font-medium">{'•'.repeat(Math.max(0, payee.account_number.length - 4))}{payee.account_number.slice(-4)}</span></div>
+                  )}
+                  {payee.account_type && (
+                    <div><span className="text-[#92979C]">Type:</span> <span className="font-medium capitalize">{payee.account_type}</span></div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {verification.response_data.discrepancies && (
               <div className="mt-3 p-4 bg-[#FEF1ED] rounded-xl border border-[#FECDC6]">
                 <p className="text-sm font-medium text-[#991B1B] mb-1">Discrepancy Reported:</p>
                 <p className="text-sm text-[#991B1B]">{verification.response_data.discrepancies}</p>
+              </div>
+            )}
+
+            {/* Approve/Reject buttons right next to the response */}
+            {invoiceStatus === 'pending_review' && (
+              <div className="flex gap-3 pt-2">
+                <Button
+                  onClick={() => handleApproval('approve')}
+                  disabled={approving}
+                  className="bg-[#045B3F] hover:bg-[#034830] rounded-xl gap-2 shadow-[0_1px_2px_rgba(0,0,0,0.1),0_2px_8px_rgba(4,91,63,0.15)]"
+                >
+                  {approving && <Loader2 className="h-4 w-4 animate-spin" />}
+                  <ShieldCheck className="h-4 w-4" />
+                  Approve & Verify
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => handleApproval('reject')}
+                  disabled={approving}
+                  className="rounded-xl gap-2 text-[#F12D1B] border-[#F12D1B] hover:bg-[#FEF1ED] hover:text-[#F12D1B]"
+                >
+                  <ShieldX className="h-4 w-4" />
+                  Reject
+                </Button>
               </div>
             )}
           </CardContent>
