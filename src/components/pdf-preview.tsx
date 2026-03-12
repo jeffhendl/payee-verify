@@ -112,7 +112,7 @@ export function PdfPreview({ invoiceId }: { invoiceId: string }) {
   const handleNextPage = () => setPageNum(p => Math.min(p + 1, totalPages));
 
   return (
-    <Card className="rounded-2xl border-[#E8EAEC] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+    <Card className="rounded-2xl border-[#E8EAEC] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden flex-shrink-0">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg tracking-[-0.01em] flex items-center gap-2">
@@ -158,8 +158,8 @@ export function PdfPreview({ invoiceId }: { invoiceId: string }) {
           <>
             <div
               ref={containerRef}
-              className="rounded-xl border border-[#E8EAEC] overflow-auto bg-[#525659] relative"
-              style={{ maxHeight: '700px' }}
+              className="rounded-xl border border-[#E8EAEC] overflow-auto bg-[#525659] relative w-full"
+              style={{ maxHeight: '700px', maxWidth: '100%' }}
             >
               {rendering && (
                 <div className="absolute inset-0 flex items-center justify-center bg-[#525659]/50 z-10">
