@@ -44,8 +44,17 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
 
   const verification = verifications?.[0] || null;
 
-  // Dynamic title based on status
-  const isPendingReview = (invoice as Invoice).status === 'pending_review';
+  // If verification is confirmed but invoice status is stale, fix it
+  if (verification?.status === 'confirmed' && (invoice as Invoice).status === 'verification_sent') {
+    await supabase
+      .from('invoices')
+      .update({ status: 'pending_review', updated_at: new Date().toISOString() })
+      .eq('id', id);
+    (invoice as Record<string, unknown>).status = 'pending_review';
+  }
+
+  // Dynamic title based on status (also check verification status as fallback)
+  const isPendingReview = (invoice as Invoice).status === 'pending_review' || verification?.status === 'confirmed';
   const isVerified = (invoice as Invoice).status === 'verified';
   const isDenied = (invoice as Invoice).status === 'denied';
 

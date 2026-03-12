@@ -270,7 +270,7 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
   return (
     <div className="space-y-6">
       {/* Pending Review Banner — show at top when payee has confirmed */}
-      {invoiceStatus === 'pending_review' && (
+      {isPayeeConfirmed && !isFinalized && (
         <Card className="rounded-2xl border-[#045B3F] bg-[#F0FFF8] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
           <CardContent className="pt-6 pb-6">
             <div className="flex items-start gap-3 mb-4">
@@ -382,7 +382,7 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
                     <div><span className="text-[#92979C]">Bank:</span> <span className="font-medium">{payee.bank_name}</span></div>
                   )}
                   {payee.aba_routing_number && (
-                    <div><span className="text-[#92979C]">Routing:</span> <span className="font-mono font-medium">{'•'.repeat(Math.max(0, payee.aba_routing_number.length - 4))}{payee.aba_routing_number.slice(-4)}</span></div>
+                    <div><span className="text-[#92979C]">Routing:</span> <span className="font-mono font-medium">{payee.aba_routing_number}</span></div>
                   )}
                   {payee.transit_number && (
                     <div><span className="text-[#92979C]">Transit:</span> <span className="font-mono font-medium">{payee.transit_number}</span></div>
@@ -391,7 +391,7 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
                     <div><span className="text-[#92979C]">Institution:</span> <span className="font-mono font-medium">{payee.institution_number}</span></div>
                   )}
                   {payee.account_number && (
-                    <div><span className="text-[#92979C]">Account:</span> <span className="font-mono font-medium">{'•'.repeat(Math.max(0, payee.account_number.length - 4))}{payee.account_number.slice(-4)}</span></div>
+                    <div><span className="text-[#92979C]">Account:</span> <span className="font-mono font-medium">{payee.account_number}</span></div>
                   )}
                   {payee.account_type && (
                     <div><span className="text-[#92979C]">Type:</span> <span className="font-medium capitalize">{payee.account_type}</span></div>
@@ -408,7 +408,7 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
             )}
 
             {/* Approve/Reject buttons right next to the response */}
-            {invoiceStatus === 'pending_review' && (
+            {isPayeeConfirmed && !isFinalized && (
               <div className="flex gap-3 pt-2">
                 <Button
                   onClick={() => handleApproval('approve')}

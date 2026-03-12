@@ -127,7 +127,7 @@ export function AuthForm() {
                 <Input
                   id="firstName"
                   type="text"
-                  placeholder="Jeff"
+                  placeholder="John"
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
                   required
@@ -139,7 +139,7 @@ export function AuthForm() {
                 <Input
                   id="lastName"
                   type="text"
-                  placeholder="Hendler"
+                  placeholder="Doe"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
                   className="h-11 rounded-xl bg-[#F7F7F7] border-transparent text-[15px] placeholder:text-[#A1A1AA] focus:bg-white focus:border-[#045B3F] focus:ring-2 focus:ring-[#045B3F]/10"
