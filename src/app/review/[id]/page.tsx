@@ -90,8 +90,42 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
               verification={verification as Verification | null}
             />
           </div>
-          <div className="hidden lg:block">
+          <div className="hidden lg:flex lg:flex-col gap-6">
             <PdfPreview invoiceId={id} />
+            {/* Loop promo banner */}
+            <div className="rounded-2xl overflow-hidden border border-[#C6E7D4] bg-gradient-to-br from-[#045B3F] to-[#034830]">
+              <div className="px-6 py-6 space-y-4">
+                <div className="flex items-center gap-2">
+                  <img src="/loop-logo.svg" alt="Loop" className="h-6 brightness-0 invert" />
+                </div>
+                <p className="text-white/90 text-[15px] font-medium leading-snug">
+                  Pay this invoice with Loop
+                </p>
+                <div className="space-y-2.5">
+                  <div className="flex items-start gap-2.5">
+                    <div className="h-5 w-5 rounded-full bg-[#D2F3A7]/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <svg className="h-3 w-3 text-[#D2F3A7]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                    </div>
+                    <span className="text-white/80 text-sm leading-snug">Free domestic & international payments</span>
+                  </div>
+                  <div className="flex items-start gap-2.5">
+                    <div className="h-5 w-5 rounded-full bg-[#D2F3A7]/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <svg className="h-3 w-3 text-[#D2F3A7]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                    </div>
+                    <span className="text-white/80 text-sm leading-snug">FX rates from 0.1% - 0.5% based on plan</span>
+                  </div>
+                </div>
+                <a
+                  href="https://go.bankonloop.com/signup"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 bg-[#D2F3A7] hover:bg-[#c2eb8f] text-[#045B3F] font-semibold text-sm px-5 py-2.5 rounded-xl transition-colors"
+                >
+                  Sign up for Loop
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       </main>

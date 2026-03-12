@@ -21,7 +21,7 @@ export async function sendVerificationEmail(params: VerificationEmailParams) {
     to: params.to,
     from: {
       email: process.env.SENDGRID_FROM_EMAIL!,
-      name: 'Payee Verify',
+      name: 'VeriPay',
     },
     subject: `Invoice Verification Request - ${params.invoiceNumber}`,
     html: `
@@ -77,7 +77,7 @@ export async function sendVerificationEmail(params: VerificationEmailParams) {
       <p style="color:#a1a1aa;font-size:12px;line-height:1.6;text-align:center;">
         This verification link expires in 72 hours. If you did not expect this request, please disregard this email.
         <br><br>
-        Sent by Payee Verify
+        Sent by VeriPay
       </p>
     </div>
   </div>

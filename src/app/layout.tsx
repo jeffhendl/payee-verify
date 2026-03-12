@@ -6,7 +6,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "Payee Verify",
+  title: "VeriPay",
   description: "Invoice payee verification made simple",
   icons: {
     icon: "/favicon.png",

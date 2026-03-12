@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { ArrowLeft, ShieldCheck } from 'lucide-react';
+import Image from 'next/image';
+import { ArrowLeft } from 'lucide-react';
 import { blogPosts, getBlogPost } from '@/lib/blog-data';
 import { notFound } from 'next/navigation';
 
@@ -12,9 +13,9 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const post = getBlogPost(slug);
-  if (!post) return { title: 'Post Not Found | Payee Verify' };
+  if (!post) return { title: 'Post Not Found | VeriPay' };
   return {
-    title: `${post.title} | Payee Verify Blog`,
+    title: `${post.title} | VeriPay Blog`,
     description: post.preview,
   };
 }
@@ -33,12 +34,10 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-[#E8EAEC]">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-lg bg-[#045B3F] flex items-center justify-center">
-              <ShieldCheck className="h-4.5 w-4.5 text-white" />
-            </div>
+            <Image src="/veripay-logo.png" alt="VeriPay" width={32} height={32} className="rounded-lg" />
             <div>
               <span className="font-semibold text-[15px] text-[#1D1D1D] leading-none tracking-[-0.01em]">
-                Payee Verify
+                VeriPay
               </span>
               <span className="text-[#71717A] text-[11px] block leading-none mt-0.5">by Loop</span>
             </div>
@@ -102,7 +101,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             href="/login"
             className="inline-flex items-center gap-2 text-[15px] font-medium text-white bg-[#045B3F] hover:bg-[#034a33] transition-colors px-6 py-3 rounded-xl"
           >
-            Try Payee Verify
+            Try VeriPay
             <span aria-hidden="true">&rarr;</span>
           </Link>
         </div>

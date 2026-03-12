@@ -1,9 +1,10 @@
 import Link from 'next/link';
-import { ShieldCheck, ArrowRight } from 'lucide-react';
+import Image from 'next/image';
+import { ArrowRight } from 'lucide-react';
 import { blogPosts } from '@/lib/blog-data';
 
 export const metadata = {
-  title: 'Blog | Payee Verify',
+  title: 'Blog | VeriPay',
   description: 'Insights on invoice verification, payment security, and vendor fraud prevention.',
 };
 
@@ -14,12 +15,10 @@ export default function BlogPage() {
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-[#E8EAEC]">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-lg bg-[#045B3F] flex items-center justify-center">
-              <ShieldCheck className="h-4.5 w-4.5 text-white" />
-            </div>
+            <Image src="/veripay-logo.png" alt="VeriPay" width={32} height={32} className="rounded-lg" />
             <div>
               <span className="font-semibold text-[15px] text-[#1D1D1D] leading-none tracking-[-0.01em]">
-                Payee Verify
+                VeriPay
               </span>
               <span className="text-[#71717A] text-[11px] block leading-none mt-0.5">by Loop</span>
             </div>
