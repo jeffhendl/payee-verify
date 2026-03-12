@@ -46,12 +46,12 @@ export interface Verification {
   id: string;
   payee_id: string;
   invoice_id: string;
-  type: 'email' | 'phone';
+  type: 'email' | 'phone' | 'sms' | 'phone_call';
   status: VerificationStatus;
   token: string;
   sent_at: string | null;
   responded_at: string | null;
-  response_data: VerificationResponse | null;
+  response_data: VerificationResponse | Record<string, unknown> | null;
   expires_at: string;
   created_at: string;
 }
@@ -69,4 +69,9 @@ export interface VerificationResponse {
   respondent_role: string;
   timestamp: string;
   banking_details_provided?: boolean;
+  call_id?: string;
+  call_type?: string;
+  call_status?: string;
+  transcript?: string | null;
+  call_analysis?: Record<string, unknown> | null;
 }

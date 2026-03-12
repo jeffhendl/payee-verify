@@ -10,7 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { Loader2, Send, Save, CheckCircle, XCircle, Clock, AlertTriangle, ShieldCheck, ShieldX, Mail, User, Briefcase, Building2, AlertCircle, Phone } from 'lucide-react';
-import type { Payee, Invoice, Verification, VerificationStatus, InvoiceStatus } from '@/lib/types';
+import type { Payee, Invoice, Verification, VerificationResponse, VerificationStatus, InvoiceStatus } from '@/lib/types';
 
 interface ExtractedDataFormProps {
   invoice: Invoice;
@@ -328,7 +328,8 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
   };
 
   // Name mismatch detection
-  const respondentName = verification?.response_data?.respondent_name || '';
+  const responseData = verification?.response_data as VerificationResponse | null;
+  const respondentName = (responseData?.respondent_name as string) || '';
   const contactName = payee.contact_name || '';
   const hasNameMismatch = (() => {
     if (!respondentName || !contactName) return false;
@@ -408,7 +409,7 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
       )}
 
       {/* Verification Status & Response Data — show above confidence when payee has responded */}
-      {verification && (verification.status === 'confirmed' || verification.status === 'denied') && verification.response_data && (
+      {verification && (verification.status === 'confirmed' || verification.status === 'denied') && responseData && (
         <Card className="rounded-2xl border-[#E8EAEC] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -426,7 +427,7 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
                 <AlertCircle className="h-4 w-4 text-[#856404] flex-shrink-0 mt-0.5" />
                 <div className="text-sm text-[#856404]">
                   <p className="font-semibold">Name mismatch detected</p>
-                  <p>Respondent &quot;{verification.response_data.respondent_name}&quot; does not match the contact name &quot;{payee.contact_name}&quot; on the invoice. Please verify before approving.</p>
+                  <p>Respondent &quot;{responseData.respondent_name}&quot; does not match the contact name &quot;{payee.contact_name}&quot; on the invoice. Please verify before approving.</p>
                 </div>
               </div>
             )}
@@ -435,12 +436,12 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
               <div className="flex items-center gap-2 text-sm">
                 <User className="h-4 w-4 text-[#92979C]" />
                 <span className="text-[#92979C]">Respondent:</span>
-                <span className="font-medium">{verification.response_data.respondent_name}</span>
+                <span className="font-medium">{responseData.respondent_name}</span>
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <Briefcase className="h-4 w-4 text-[#92979C]" />
                 <span className="text-[#92979C]">Role:</span>
-                <span className="font-medium">{verification.response_data.respondent_role}</span>
+                <span className="font-medium">{responseData.respondent_role}</span>
               </div>
             </div>
             {verification.responded_at && (
@@ -450,7 +451,7 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
             )}
 
             {/* Bank details provided by payee */}
-            {verification.response_data.banking_details_provided && (
+            {responseData.banking_details_provided && (
               <div className="mt-2 p-4 bg-[#F7F7F7] rounded-xl border border-[#E8EAEC]">
                 <div className="flex items-center gap-2 mb-2">
                   <Building2 className="h-4 w-4 text-[#045B3F]" />
@@ -479,10 +480,10 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
               </div>
             )}
 
-            {verification.response_data.discrepancies && (
+            {responseData.discrepancies && (
               <div className="mt-3 p-4 bg-[#FEF1ED] rounded-xl border border-[#FECDC6]">
                 <p className="text-sm font-medium text-[#991B1B] mb-1">Discrepancy Reported:</p>
-                <p className="text-sm text-[#991B1B]">{verification.response_data.discrepancies}</p>
+                <p className="text-sm text-[#991B1B]">{responseData.discrepancies}</p>
               </div>
             )}
 

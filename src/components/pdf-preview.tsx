@@ -2,18 +2,20 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileText, Loader2, ExternalLink, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { FileText, Loader2, ExternalLink, ZoomIn, ZoomOut, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export function PdfPreview({ invoiceId }: { invoiceId: string }) {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [rendering, setRendering] = useState(false);
   const [error, setError] = useState(false);
   const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [pageNum, setPageNum] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const pdfDocRef = useRef<any>(null);
 
   useEffect(() => {
     async function fetchUrl() {
@@ -34,32 +36,80 @@ export function PdfPreview({ invoiceId }: { invoiceId: string }) {
     fetchUrl();
   }, [invoiceId]);
 
+  // Load PDF document
+  useEffect(() => {
+    if (!pdfUrl) return;
+
+    let cancelled = false;
+
+    async function loadPdf() {
+      try {
+        const pdfjsLib = await import('pdfjs-dist');
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+
+        const loadingTask = pdfjsLib.getDocument(pdfUrl as string);
+        const pdf = await loadingTask.promise;
+
+        if (cancelled) return;
+
+        pdfDocRef.current = pdf;
+        setTotalPages(pdf.numPages);
+        setPageNum(1);
+      } catch (err) {
+        console.error('PDF load error:', err);
+        if (!cancelled) setError(true);
+      }
+    }
+
+    loadPdf();
+    return () => { cancelled = true; };
+  }, [pdfUrl]);
+
+  // Render current page
+  const renderPage = useCallback(async () => {
+    const pdf = pdfDocRef.current;
+    const canvas = canvasRef.current;
+    if (!pdf || !canvas) return;
+
+    setRendering(true);
+
+    try {
+      const page = await pdf.getPage(pageNum);
+      const baseScale = containerRef.current
+        ? containerRef.current.clientWidth / page.getViewport({ scale: 1 }).width
+        : 1;
+      const viewport = page.getViewport({ scale: baseScale * zoom });
+
+      canvas.width = viewport.width * 2; // 2x for retina
+      canvas.height = viewport.height * 2;
+      canvas.style.width = `${viewport.width}px`;
+      canvas.style.height = `${viewport.height}px`;
+
+      const ctx = canvas.getContext('2d')!;
+      ctx.scale(2, 2);
+
+      await page.render({
+        canvasContext: ctx,
+        viewport,
+      }).promise;
+    } catch (err) {
+      console.error('PDF render error:', err);
+    } finally {
+      setRendering(false);
+    }
+  }, [pageNum, zoom]);
+
+  useEffect(() => {
+    if (pdfDocRef.current && totalPages > 0) {
+      renderPage();
+    }
+  }, [renderPage, totalPages]);
+
   const handleZoomIn = () => setZoom(z => Math.min(z + 0.25, 3));
   const handleZoomOut = () => setZoom(z => Math.max(z - 0.25, 0.5));
-  const handleReset = () => { setZoom(1); setPan({ x: 0, y: 0 }); };
-
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (zoom <= 1) return;
-    setIsDragging(true);
-    setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
-  }, [zoom, pan]);
-
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isDragging) return;
-    setPan({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
-  }, [isDragging, dragStart]);
-
-  const handleMouseUp = useCallback(() => {
-    setIsDragging(false);
-  }, []);
-
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    if (e.ctrlKey || e.metaKey) {
-      e.preventDefault();
-      const delta = e.deltaY > 0 ? -0.1 : 0.1;
-      setZoom(z => Math.min(Math.max(z + delta, 0.5), 3));
-    }
-  }, []);
+  const handleReset = () => setZoom(1);
+  const handlePrevPage = () => setPageNum(p => Math.max(p - 1, 1));
+  const handleNextPage = () => setPageNum(p => Math.min(p + 1, totalPages));
 
   return (
     <Card className="rounded-2xl border-[#E8EAEC] shadow-[0_1px_3px_rgba(0,0,0,0.04)] sticky top-24">
@@ -104,27 +154,32 @@ export function PdfPreview({ invoiceId }: { invoiceId: string }) {
             <p className="text-sm text-[#92979C]">Unable to load PDF preview</p>
           </div>
         )}
-        {pdfUrl && !loading && (
-          <div
-            ref={containerRef}
-            className="rounded-xl border border-[#E8EAEC] overflow-hidden bg-[#525659]"
-            style={{ aspectRatio: '8.5/11', cursor: zoom > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default' }}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-            onWheel={handleWheel}
-          >
-            <iframe
-              src={`${pdfUrl}#toolbar=0&navpanes=0&view=FitH`}
-              className="w-full h-full border-0"
-              style={{
-                transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
-                transformOrigin: 'top left',
-              }}
-              title="Invoice PDF"
-            />
-          </div>
+        {pdfUrl && !loading && !error && (
+          <>
+            <div
+              ref={containerRef}
+              className="rounded-xl border border-[#E8EAEC] overflow-auto bg-[#525659] relative"
+              style={{ maxHeight: '700px' }}
+            >
+              {rendering && (
+                <div className="absolute inset-0 flex items-center justify-center bg-[#525659]/50 z-10">
+                  <Loader2 className="h-5 w-5 animate-spin text-white" />
+                </div>
+              )}
+              <canvas ref={canvasRef} className="block mx-auto" />
+            </div>
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-3">
+                <Button variant="ghost" size="sm" onClick={handlePrevPage} disabled={pageNum <= 1} className="h-7 w-7 p-0">
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-xs text-[#92979C]">{pageNum} / {totalPages}</span>
+                <Button variant="ghost" size="sm" onClick={handleNextPage} disabled={pageNum >= totalPages} className="h-7 w-7 p-0">
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </CardContent>
     </Card>
