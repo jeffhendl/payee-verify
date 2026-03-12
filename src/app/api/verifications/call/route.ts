@@ -88,9 +88,11 @@ export async function POST(request: Request) {
           invoice_number: payee.invoice_number || 'unknown',
           invoice_amount: `${payee.currency || 'USD'} ${payee.invoice_amount || 'unknown'}`,
           verify_url: verifyUrl,
-          has_bank_details: (payee.account_number ? 'true' : 'false'),
+          scenario: payee.account_number ? 'A' : 'B',
+          has_bank_details: payee.account_number ? 'true' : 'false',
           last_four_account: payee.account_number ? payee.account_number.slice(-4) : '',
           country: payee.country || 'US',
+          bank_country: (payee.country || 'US') === 'CA' ? 'Canada' : 'United States',
         },
         metadata: {
           verification_id: verification.id,

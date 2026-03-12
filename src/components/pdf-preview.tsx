@@ -13,6 +13,7 @@ export function PdfPreview({ invoiceId }: { invoiceId: string }) {
   const [zoom, setZoom] = useState(1);
   const [pageNum, setPageNum] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
+  const [containerHeight, setContainerHeight] = useState<number | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const pdfDocRef = useRef<any>(null);
@@ -75,10 +76,15 @@ export function PdfPreview({ invoiceId }: { invoiceId: string }) {
 
     try {
       const page = await pdf.getPage(pageNum);
-      const baseScale = containerRef.current
-        ? containerRef.current.clientWidth / page.getViewport({ scale: 1 }).width
-        : 1;
+      const containerWidth = containerRef.current?.clientWidth || 370;
+      const baseScale = containerWidth / page.getViewport({ scale: 1 }).width;
       const viewport = page.getViewport({ scale: baseScale * zoom });
+
+      // Lock container height on first render (at zoom=1) so zooming doesn't resize the card
+      if (containerHeight === null) {
+        const fitViewport = page.getViewport({ scale: baseScale });
+        setContainerHeight(Math.min(fitViewport.height, 700));
+      }
 
       canvas.width = viewport.width * 2; // 2x for retina
       canvas.height = viewport.height * 2;
@@ -97,7 +103,7 @@ export function PdfPreview({ invoiceId }: { invoiceId: string }) {
     } finally {
       setRendering(false);
     }
-  }, [pageNum, zoom]);
+  }, [pageNum, zoom, containerHeight]);
 
   useEffect(() => {
     if (pdfDocRef.current && totalPages > 0) {
@@ -159,7 +165,7 @@ export function PdfPreview({ invoiceId }: { invoiceId: string }) {
             <div
               ref={containerRef}
               className="rounded-xl border border-[#E8EAEC] overflow-auto bg-[#525659] relative w-full"
-              style={{ maxHeight: '700px', maxWidth: '100%' }}
+              style={{ height: containerHeight ? `${containerHeight}px` : undefined, maxHeight: '700px' }}
             >
               {rendering && (
                 <div className="absolute inset-0 flex items-center justify-center bg-[#525659]/50 z-10">
