@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { NavBar } from '@/components/nav-bar';
 import { ExtractedDataForm } from '@/components/extracted-data-form';
+import { PdfPreview } from '@/components/pdf-preview';
 import type { Invoice, Payee, Verification } from '@/lib/types';
 
 export default async function ReviewPage({ params }: { params: Promise<{ id: string }> }) {
@@ -74,18 +75,25 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
   return (
     <div className="min-h-screen bg-white">
       <NavBar />
-      <main className="max-w-3xl mx-auto px-6 py-10">
+      <main className="max-w-7xl mx-auto px-6 py-10">
         <div className="mb-8">
           <h1 className="text-2xl font-semibold text-[#1D1D1D] tracking-[-0.02em]">{title}</h1>
           <p className="text-[#71717A] mt-1.5 text-[15px]">
             {subtitle} <strong>{(invoice as Invoice).file_name}</strong>
           </p>
         </div>
-        <ExtractedDataForm
-          invoice={invoice as Invoice}
-          payee={payee as Payee}
-          verification={verification as Verification | null}
-        />
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-8">
+          <div>
+            <ExtractedDataForm
+              invoice={invoice as Invoice}
+              payee={payee as Payee}
+              verification={verification as Verification | null}
+            />
+          </div>
+          <div className="hidden lg:block">
+            <PdfPreview invoiceId={id} />
+          </div>
+        </div>
       </main>
     </div>
   );

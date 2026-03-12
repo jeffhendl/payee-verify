@@ -5,7 +5,8 @@ export async function middleware(request: NextRequest) {
   // Allow public verify pages and API respond route
   if (
     request.nextUrl.pathname.startsWith('/verify/') ||
-    request.nextUrl.pathname.startsWith('/api/verifications/respond')
+    request.nextUrl.pathname.startsWith('/api/verifications/respond') ||
+    request.nextUrl.pathname.startsWith('/blog')
   ) {
     return NextResponse.next();
   }

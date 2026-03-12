@@ -4,14 +4,17 @@ import { NavBar } from '@/components/nav-bar';
 import { DashboardTable } from '@/components/dashboard-table';
 import { FailedUploadsLog } from '@/components/failed-uploads-log';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import Link from 'next/link';
-import { FileUp } from 'lucide-react';
+import { FileUp, ShieldCheck, Zap, Globe, AlertTriangle } from 'lucide-react';
 
 export default async function DashboardPage() {
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
+
+  const firstName = user.user_metadata?.first_name || 'there';
 
   // Fetch invoices with payee data
   const { data: invoices } = await supabase
@@ -41,7 +44,7 @@ export default async function DashboardPage() {
       <main className="max-w-6xl mx-auto px-8 py-12">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl font-semibold text-[#1D1D1D] tracking-[-0.02em]">Dashboard</h1>
+            <h1 className="text-2xl font-semibold text-[#1D1D1D] tracking-[-0.02em]">Welcome back, {firstName}</h1>
             <p className="text-[#71717A] mt-1.5 text-[15px]">Manage your invoice verifications</p>
           </div>
           <Link href="/upload">
@@ -58,6 +61,51 @@ export default async function DashboardPage() {
         {failedInvoices.length > 0 && (
           <FailedUploadsLog invoices={failedInvoices} />
         )}
+
+        {/* How it works section */}
+        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-5">
+          <Card className="rounded-2xl border-[#E8EAEC] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+            <CardContent className="pt-6">
+              <div className="h-10 w-10 rounded-xl bg-[#F2FCE4] flex items-center justify-center mb-4">
+                <ShieldCheck className="h-5 w-5 text-[#045B3F]" />
+              </div>
+              <h3 className="font-semibold text-[#1D1D1D] mb-1.5">Verify Before You Pay</h3>
+              <p className="text-sm text-[#71717A] leading-relaxed">
+                Upload an invoice and our AI extracts vendor details automatically. Send verification to the payee before releasing payment.
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="rounded-2xl border-[#E8EAEC] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+            <CardContent className="pt-6">
+              <div className="h-10 w-10 rounded-xl bg-[#F2FCE4] flex items-center justify-center mb-4">
+                <AlertTriangle className="h-5 w-5 text-[#045B3F]" />
+              </div>
+              <h3 className="font-semibold text-[#1D1D1D] mb-1.5">Catch Fraud Early</h3>
+              <p className="text-sm text-[#71717A] leading-relaxed">
+                Validate banking formats, detect name mismatches, and flag inconsistencies before funds are sent to the wrong account.
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="rounded-2xl border-[#E8EAEC] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+            <CardContent className="pt-6">
+              <div className="h-10 w-10 rounded-xl bg-[#F2FCE4] flex items-center justify-center mb-4">
+                <Globe className="h-5 w-5 text-[#045B3F]" />
+              </div>
+              <h3 className="font-semibold text-[#1D1D1D] mb-1.5">US &amp; Canadian Support</h3>
+              <p className="text-sm text-[#71717A] leading-relaxed">
+                Supports ABA routing numbers for US accounts and transit/institution numbers for Canadian accounts out of the box.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Footer */}
+        <div className="mt-12 pt-8 border-t border-[#E8EAEC] flex items-center justify-between text-xs text-[#92979C]">
+          <p>Verification results are based on automated checks. Always confirm payment details independently before transferring funds.</p>
+          <a href="https://bankonloop.com" target="_blank" rel="noopener noreferrer" className="font-medium text-[#045B3F] hover:underline whitespace-nowrap ml-4">
+            Powered by Loop
+          </a>
+        </div>
       </main>
     </div>
   );

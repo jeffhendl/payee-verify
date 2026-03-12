@@ -101,6 +101,42 @@ export default async function VerifyPage({ params }: { params: Promise<{ token: 
         </p>
       </div>
       <VerificationResponseForm token={token} payee={payee} bankingMissing={bankingMissing} />
+
+      {/* Why businesses verify */}
+      <div className="max-w-lg mx-auto mt-12 space-y-6">
+        <div className="border-t border-[#E8EAEC] pt-8">
+          <h2 className="text-lg font-semibold text-[#383B3E] mb-3">Why businesses verify invoices</h2>
+          <p className="text-sm text-[#92979C] leading-relaxed mb-3">
+            Invoice fraud and payment impersonation scams have increased in recent years. Attackers often attempt to redirect payments by altering bank account details or impersonating vendors.
+          </p>
+          <p className="text-sm text-[#92979C] leading-relaxed">
+            This verification step helps ensure that payments are sent to the correct recipient and protects both parties from fraud.
+          </p>
+        </div>
+        <div className="border-t border-[#E8EAEC] pt-6">
+          <h2 className="text-lg font-semibold text-[#383B3E] mb-3">About this tool</h2>
+          <p className="text-sm text-[#92979C] leading-relaxed mb-3">
+            This verification request was generated using a payment verification tool by Loop. It extracts payment details from invoices, validates banking formats, and compares vendor details to help make payments safer.
+          </p>
+          <p className="text-sm text-[#92979C] leading-relaxed">
+            This request does not authorize or initiate any payment. It is simply a request to confirm that vendor information is accurate.
+          </p>
+        </div>
+        <div className="border-t border-[#E8EAEC] pt-6 pb-4">
+          <h2 className="text-lg font-semibold text-[#383B3E] mb-3">About Loop</h2>
+          <p className="text-sm text-[#92979C] leading-relaxed mb-4">
+            Loop is a global payments platform that helps businesses send and receive international payments more efficiently. Companies use Loop to pay vendors globally, manage multiple currencies, and reduce cross-border payment costs.
+          </p>
+          <a
+            href="https://bankonloop.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-[#045B3F] hover:underline"
+          >
+            Learn more about Loop &rarr;
+          </a>
+        </div>
+      </div>
     </div>
   );
 }

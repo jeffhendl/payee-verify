@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
-import { FileUp, LayoutDashboard, LogOut, ShieldCheck } from 'lucide-react';
+import { FileUp, LayoutDashboard, LogOut, ShieldCheck, BookOpen } from 'lucide-react';
 
 export function NavBar() {
   const router = useRouter();
@@ -59,6 +59,20 @@ export function NavBar() {
               >
                 <FileUp className="h-4 w-4" />
                 Upload
+              </Button>
+            </Link>
+            <Link href="/blog">
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`gap-2 rounded-lg text-[13px] font-medium ${
+                  isActive('/blog')
+                    ? 'bg-[#F2FCE4] text-[#045B3F]'
+                    : 'text-[#71717A] hover:text-[#1D1D1D] hover:bg-[#F7F7F7]'
+                }`}
+              >
+                <BookOpen className="h-4 w-4" />
+                Blog
               </Button>
             </Link>
           </div>
