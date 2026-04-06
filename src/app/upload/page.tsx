@@ -4,7 +4,7 @@ import { Zap, FileSearch, ShieldCheck, Send } from 'lucide-react';
 
 export default function UploadPage() {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#FCFCFC]">
       <NavBar />
       <main className="max-w-6xl mx-auto px-6 py-10">
         <div className="mb-8">
@@ -19,7 +19,7 @@ export default function UploadPage() {
             <h3 className="text-sm font-semibold text-[#1D1D1D] uppercase tracking-wider">How it works</h3>
             <div className="space-y-5">
               <div className="flex gap-3">
-                <div className="h-8 w-8 rounded-lg bg-[#F2FCE4] flex items-center justify-center flex-shrink-0">
+                <div className="h-8 w-8 rounded-full bg-[#F2FCE4] flex items-center justify-center flex-shrink-0">
                   <Zap className="h-4 w-4 text-[#045B3F]" />
                 </div>
                 <div>
@@ -28,7 +28,7 @@ export default function UploadPage() {
                 </div>
               </div>
               <div className="flex gap-3">
-                <div className="h-8 w-8 rounded-lg bg-[#F2FCE4] flex items-center justify-center flex-shrink-0">
+                <div className="h-8 w-8 rounded-full bg-[#F2FCE4] flex items-center justify-center flex-shrink-0">
                   <FileSearch className="h-4 w-4 text-[#045B3F]" />
                 </div>
                 <div>
@@ -37,7 +37,7 @@ export default function UploadPage() {
                 </div>
               </div>
               <div className="flex gap-3">
-                <div className="h-8 w-8 rounded-lg bg-[#F2FCE4] flex items-center justify-center flex-shrink-0">
+                <div className="h-8 w-8 rounded-full bg-[#F2FCE4] flex items-center justify-center flex-shrink-0">
                   <Send className="h-4 w-4 text-[#045B3F]" />
                 </div>
                 <div>
@@ -46,7 +46,7 @@ export default function UploadPage() {
                 </div>
               </div>
               <div className="flex gap-3">
-                <div className="h-8 w-8 rounded-lg bg-[#F2FCE4] flex items-center justify-center flex-shrink-0">
+                <div className="h-8 w-8 rounded-full bg-[#F2FCE4] flex items-center justify-center flex-shrink-0">
                   <ShieldCheck className="h-4 w-4 text-[#045B3F]" />
                 </div>
                 <div>

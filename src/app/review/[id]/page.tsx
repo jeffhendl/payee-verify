@@ -73,7 +73,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#FCFCFC]">
       <NavBar />
       <main className="max-w-7xl mx-auto px-6 py-10">
         <div className="mb-8">

@@ -118,7 +118,7 @@ export function AuthForm() {
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
                 required
-                className="h-11 rounded-xl bg-[#F7F7F7] border-transparent text-[15px] placeholder:text-[#A1A1AA] focus:bg-white focus:border-[#045B3F] focus:ring-2 focus:ring-[#045B3F]/10"
+                className="h-11 rounded-xl bg-[#F2F2F2] border-transparent text-[15px] placeholder:text-[#A1A1AA] focus:bg-white focus:border-[#045B3F] focus:ring-2 focus:ring-[#045B3F]/10"
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -131,7 +131,7 @@ export function AuthForm() {
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
                   required
-                  className="h-11 rounded-xl bg-[#F7F7F7] border-transparent text-[15px] placeholder:text-[#A1A1AA] focus:bg-white focus:border-[#045B3F] focus:ring-2 focus:ring-[#045B3F]/10"
+                  className="h-11 rounded-xl bg-[#F2F2F2] border-transparent text-[15px] placeholder:text-[#A1A1AA] focus:bg-white focus:border-[#045B3F] focus:ring-2 focus:ring-[#045B3F]/10"
                 />
               </div>
               <div className="space-y-2">
@@ -142,7 +142,7 @@ export function AuthForm() {
                   placeholder="Doe"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
-                  className="h-11 rounded-xl bg-[#F7F7F7] border-transparent text-[15px] placeholder:text-[#A1A1AA] focus:bg-white focus:border-[#045B3F] focus:ring-2 focus:ring-[#045B3F]/10"
+                  className="h-11 rounded-xl bg-[#F2F2F2] border-transparent text-[15px] placeholder:text-[#A1A1AA] focus:bg-white focus:border-[#045B3F] focus:ring-2 focus:ring-[#045B3F]/10"
                 />
               </div>
             </div>
@@ -158,7 +158,7 @@ export function AuthForm() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="h-11 rounded-xl bg-[#F7F7F7] border-transparent text-[15px] placeholder:text-[#A1A1AA] focus:bg-white focus:border-[#045B3F] focus:ring-2 focus:ring-[#045B3F]/10"
+            className="h-11 rounded-xl bg-[#F2F2F2] border-transparent text-[15px] placeholder:text-[#A1A1AA] focus:bg-white focus:border-[#045B3F] focus:ring-2 focus:ring-[#045B3F]/10"
           />
         </div>
         <div className="space-y-2">
@@ -172,7 +172,7 @@ export function AuthForm() {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={isLogin ? 1 : 8}
-              className="h-11 rounded-xl bg-[#F7F7F7] border-transparent text-[15px] placeholder:text-[#A1A1AA] focus:bg-white focus:border-[#045B3F] focus:ring-2 focus:ring-[#045B3F]/10 pr-10"
+              className="h-11 rounded-xl bg-[#F2F2F2] border-transparent text-[15px] placeholder:text-[#A1A1AA] focus:bg-white focus:border-[#045B3F] focus:ring-2 focus:ring-[#045B3F]/10 pr-10"
             />
             <button
               type="button"
@@ -214,7 +214,7 @@ export function AuthForm() {
 
         <Button
           type="submit"
-          className="w-full h-11 rounded-xl bg-[#045B3F] hover:bg-[#034830] text-[15px] font-medium shadow-[0_1px_2px_rgba(0,0,0,0.1),0_2px_8px_rgba(4,91,63,0.15)]"
+          className="w-full h-11 bg-[#045B3F] hover:bg-[#034830] text-[15px] font-medium"
           disabled={loading}
         >
           {loading ? (

@@ -143,12 +143,12 @@ export function PdfPreview({ invoiceId }: { invoiceId: string }) {
       </CardHeader>
       <CardContent className="flex-1 min-h-0 flex flex-col">
         {loading && (
-          <div className="flex items-center justify-center bg-[#F7F7F7] rounded-xl" style={{ aspectRatio: '8.5/11' }}>
+          <div className="flex items-center justify-center bg-[#F2F2F2] rounded-xl" style={{ aspectRatio: '8.5/11' }}>
             <Loader2 className="h-6 w-6 animate-spin text-[#92979C]" />
           </div>
         )}
         {error && (
-          <div className="flex flex-col items-center justify-center h-[300px] bg-[#F7F7F7] rounded-xl">
+          <div className="flex flex-col items-center justify-center h-[300px] bg-[#F2F2F2] rounded-xl">
             <FileText className="h-10 w-10 text-[#D3D7DC] mb-3" />
             <p className="text-sm text-[#92979C]">Unable to load PDF preview</p>
           </div>

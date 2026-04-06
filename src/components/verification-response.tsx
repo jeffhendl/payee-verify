@@ -390,7 +390,7 @@ export function VerificationResponseForm({ token, payee, bankingMissing }: Verif
         <div className="grid grid-cols-2 gap-4">
           <Button
             size="lg"
-            className="h-16 rounded-2xl bg-[#045B3F] hover:bg-[#034830] shadow-[0_1px_2px_rgba(0,0,0,0.1),0_2px_8px_rgba(4,91,63,0.15)]"
+            className="h-16 rounded-2xl bg-[#045B3F] hover:bg-[#034830]"
             onClick={() => {
               // Validate banking fields before proceeding
               if (bankingMissing) {

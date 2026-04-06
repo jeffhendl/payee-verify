@@ -54,7 +54,7 @@ export default async function DashboardPage() {
   const failedInvoices = allInvoices.filter(i => i.status === 'failed');
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#FCFCFC]">
       <NavBar />
       <main className="max-w-6xl mx-auto px-8 py-12">
         <div className="flex items-center justify-between mb-8">
@@ -63,7 +63,7 @@ export default async function DashboardPage() {
             <p className="text-[#71717A] mt-1.5 text-[15px]">Manage your invoice verifications</p>
           </div>
           <Link href="/upload">
-            <Button className="gap-2 bg-[#045B3F] hover:bg-[#034830] rounded-xl h-10 px-5 text-[13px] font-medium shadow-[0_1px_2px_rgba(0,0,0,0.1),0_2px_8px_rgba(4,91,63,0.15)]">
+            <Button className="gap-2 bg-[#045B3F] hover:bg-[#034830] h-10 px-5 text-[13px] font-medium">
               <FileUp className="h-4 w-4" />
               Upload Invoice
             </Button>
@@ -81,7 +81,7 @@ export default async function DashboardPage() {
         <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-5">
           <Card className="rounded-2xl border-[#E8EAEC] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
             <CardContent className="pt-6">
-              <div className="h-10 w-10 rounded-xl bg-[#F2FCE4] flex items-center justify-center mb-4">
+              <div className="h-10 w-10 rounded-full bg-[#F2FCE4] flex items-center justify-center mb-4">
                 <ShieldCheck className="h-5 w-5 text-[#045B3F]" />
               </div>
               <h3 className="font-semibold text-[#1D1D1D] mb-1.5">Verify Before You Pay</h3>
@@ -92,7 +92,7 @@ export default async function DashboardPage() {
           </Card>
           <Card className="rounded-2xl border-[#E8EAEC] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
             <CardContent className="pt-6">
-              <div className="h-10 w-10 rounded-xl bg-[#F2FCE4] flex items-center justify-center mb-4">
+              <div className="h-10 w-10 rounded-full bg-[#F2FCE4] flex items-center justify-center mb-4">
                 <AlertTriangle className="h-5 w-5 text-[#045B3F]" />
               </div>
               <h3 className="font-semibold text-[#1D1D1D] mb-1.5">Catch Fraud Early</h3>
@@ -103,7 +103,7 @@ export default async function DashboardPage() {
           </Card>
           <Card className="rounded-2xl border-[#E8EAEC] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
             <CardContent className="pt-6">
-              <div className="h-10 w-10 rounded-xl bg-[#F2FCE4] flex items-center justify-center mb-4">
+              <div className="h-10 w-10 rounded-full bg-[#F2FCE4] flex items-center justify-center mb-4">
                 <Globe className="h-5 w-5 text-[#045B3F]" />
               </div>
               <h3 className="font-semibold text-[#1D1D1D] mb-1.5">US &amp; Canadian Support</h3>

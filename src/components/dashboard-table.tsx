@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { InvoiceStatusBadge } from './invoice-status-badge';
-import { FileText } from 'lucide-react';
+import { FileText, FileUp } from 'lucide-react';
 import type { InvoiceStatus } from '@/lib/types';
 
 interface DashboardInvoice {
@@ -34,11 +34,16 @@ export function DashboardTable({ invoices }: { invoices: DashboardInvoice[] }) {
   if (invoices.length === 0) {
     return (
       <div className="text-center py-16">
-        <FileText className="h-12 w-12 text-[#D3D7DC] mx-auto mb-4" />
+        <div className="h-14 w-14 rounded-full bg-[#F2FCE4] flex items-center justify-center mx-auto mb-4">
+          <FileText className="h-7 w-7 text-[#045B3F]" />
+        </div>
         <h3 className="text-lg font-medium text-[#383B3E] mb-1">No invoices yet</h3>
-        <p className="text-[#92979C] mb-4">Upload your first invoice to get started</p>
+        <p className="text-[#92979C] mb-5">Upload your first invoice to get started</p>
         <Link href="/upload">
-          <Button className="rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.1),0_2px_8px_rgba(4,91,63,0.15)]">Upload Invoice</Button>
+          <Button className="gap-2 bg-[#045B3F] hover:bg-[#034830] h-9 px-4 text-[13px] font-medium">
+            <FileUp className="h-4 w-4" />
+            Upload Invoice
+          </Button>
         </Link>
       </div>
     );
@@ -66,7 +71,7 @@ export function DashboardTable({ invoices }: { invoices: DashboardInvoice[] }) {
             : '—';
 
           return (
-            <TableRow key={invoice.id} className="hover:bg-[#F7F7F7] transition-colors">
+            <TableRow key={invoice.id} className="hover:bg-[#F2F2F2] transition-colors">
               <TableCell className="font-medium">{invoice.file_name}</TableCell>
               <TableCell>{payee?.company_name || '—'}</TableCell>
               <TableCell>{formatted}</TableCell>
@@ -76,7 +81,7 @@ export function DashboardTable({ invoices }: { invoices: DashboardInvoice[] }) {
               <TableCell className="text-[#92979C]">{timeAgo(invoice.created_at)}</TableCell>
               <TableCell className="text-right pr-4">
                 <Link href={`/review/${invoice.id}`}>
-                  <Button variant="outline" size="sm" className="text-[13px] rounded-lg border-[#045B3F] text-[#045B3F] hover:bg-[#045B3F] hover:text-white">
+                  <Button variant="ghost" size="sm" className="text-[13px] text-[#045B3F] hover:bg-[#F2FCE4] font-medium">
                     Review
                   </Button>
                 </Link>

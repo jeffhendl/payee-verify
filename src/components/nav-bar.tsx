@@ -20,56 +20,39 @@ export function NavBar() {
 
   const isActive = (path: string) => pathname === path;
 
+  const navItemClass = (path: string) =>
+    `gap-2 rounded-lg text-[13px] font-medium h-8 px-3 ${
+      isActive(path)
+        ? 'bg-[#F2FCE4] text-[#045B3F]'
+        : 'text-[#606265] hover:text-[#383B3E] hover:bg-[#F2F2F2]'
+    }`;
+
   return (
-    <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-[#E8EAEC]">
-      <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+    <nav className="sticky top-0 z-50 bg-white border-b border-[#E8EAEC]">
+      <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center gap-2.5">
             <Image src="/veripay-logo.png" alt="VeriPay" width={32} height={32} className="rounded-lg" />
             <div>
               <span className="font-semibold text-[15px] text-[#1D1D1D] leading-none tracking-[-0.01em]">VeriPay</span>
-              <span className="text-[#71717A] text-[11px] block leading-none mt-0.5">by Loop</span>
+              <span className="text-[#92979C] text-[11px] block leading-none mt-0.5">by Loop</span>
             </div>
           </Link>
           <div className="flex items-center gap-1">
             <Link href="/">
-              <Button
-                variant="ghost"
-                size="sm"
-                className={`gap-2 rounded-lg text-[13px] font-medium ${
-                  isActive('/')
-                    ? 'bg-[#F2FCE4] text-[#045B3F]'
-                    : 'text-[#71717A] hover:text-[#1D1D1D] hover:bg-[#F7F7F7]'
-                }`}
-              >
+              <Button variant="ghost" className={navItemClass('/')}>
                 <LayoutDashboard className="h-4 w-4" />
                 Dashboard
               </Button>
             </Link>
             <Link href="/upload">
-              <Button
-                variant="ghost"
-                size="sm"
-                className={`gap-2 rounded-lg text-[13px] font-medium ${
-                  isActive('/upload')
-                    ? 'bg-[#F2FCE4] text-[#045B3F]'
-                    : 'text-[#71717A] hover:text-[#1D1D1D] hover:bg-[#F7F7F7]'
-                }`}
-              >
+              <Button variant="ghost" className={navItemClass('/upload')}>
                 <FileUp className="h-4 w-4" />
                 Upload
               </Button>
             </Link>
             <Link href="/blog">
-              <Button
-                variant="ghost"
-                size="sm"
-                className={`gap-2 rounded-lg text-[13px] font-medium ${
-                  isActive('/blog')
-                    ? 'bg-[#F2FCE4] text-[#045B3F]'
-                    : 'text-[#71717A] hover:text-[#1D1D1D] hover:bg-[#F7F7F7]'
-                }`}
-              >
+              <Button variant="ghost" className={navItemClass('/blog')}>
                 <BookOpen className="h-4 w-4" />
                 Blog
               </Button>
@@ -78,9 +61,8 @@ export function NavBar() {
         </div>
         <Button
           variant="ghost"
-          size="sm"
           onClick={handleSignOut}
-          className="gap-2 rounded-lg text-[13px] font-medium text-[#71717A] hover:text-[#1D1D1D] hover:bg-[#F7F7F7]"
+          className="gap-2 rounded-lg text-[13px] font-medium h-8 px-3 text-[#606265] hover:text-[#383B3E] hover:bg-[#F2F2F2]"
         >
           <LogOut className="h-4 w-4" />
           Sign Out

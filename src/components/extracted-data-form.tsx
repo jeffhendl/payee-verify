@@ -450,7 +450,7 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
               <Button
                 onClick={() => handleApproval('approve')}
                 disabled={approving}
-                className="bg-[#045B3F] hover:bg-[#034830] rounded-xl gap-2 shadow-[0_1px_2px_rgba(0,0,0,0.1),0_2px_8px_rgba(4,91,63,0.15)]"
+                className="bg-[#045B3F] hover:bg-[#034830] gap-2"
               >
                 {approving && <Loader2 className="h-4 w-4 animate-spin" />}
                 <ShieldCheck className="h-4 w-4" />
@@ -536,7 +536,7 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
 
             {/* Bank details provided by payee */}
             {responseData.banking_details_provided && (
-              <div className="mt-2 p-4 bg-[#F7F7F7] rounded-xl border border-[#E8EAEC]">
+              <div className="mt-2 p-4 bg-[#F2F2F2] rounded-xl border border-[#E8EAEC]">
                 <div className="flex items-center gap-2 mb-2">
                   <Building2 className="h-4 w-4 text-[#045B3F]" />
                   <p className="text-sm font-semibold text-[#383B3E]">Banking Details Provided by Payee</p>
@@ -577,7 +577,7 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
                 <Button
                   onClick={() => handleApproval('approve')}
                   disabled={approving}
-                  className="bg-[#045B3F] hover:bg-[#034830] rounded-xl gap-2 shadow-[0_1px_2px_rgba(0,0,0,0.1),0_2px_8px_rgba(4,91,63,0.15)]"
+                  className="bg-[#045B3F] hover:bg-[#034830] gap-2"
                 >
                   {approving && <Loader2 className="h-4 w-4 animate-spin" />}
                   <ShieldCheck className="h-4 w-4" />
@@ -669,7 +669,7 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
 
               {/* Call Summary */}
               {callSummary && (
-                <div className="p-3 bg-[#F7F7F7] rounded-xl border border-[#E8EAEC]">
+                <div className="p-3 bg-[#F2F2F2] rounded-xl border border-[#E8EAEC]">
                   <p className="text-xs font-semibold text-[#606265] mb-1">Call Summary</p>
                   <p className="text-sm text-[#383B3E]">{callSummary}</p>
                 </div>
@@ -692,7 +692,7 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
 
               {/* Recording */}
               {recordingUrl && (
-                <div className="p-3 bg-[#F7F7F7] rounded-xl border border-[#E8EAEC]">
+                <div className="p-3 bg-[#F2F2F2] rounded-xl border border-[#E8EAEC]">
                   <p className="text-xs font-semibold text-[#606265] mb-2 flex items-center gap-1.5">
                     <Play className="h-3.5 w-3.5" />
                     Call Recording
@@ -705,7 +705,7 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
 
               {/* Transcript */}
               {callTranscript && (
-                <div className="p-3 bg-[#F7F7F7] rounded-xl border border-[#E8EAEC]">
+                <div className="p-3 bg-[#F2F2F2] rounded-xl border border-[#E8EAEC]">
                   <p className="text-xs font-semibold text-[#606265] mb-1">Transcript</p>
                   <div className="text-sm text-[#383B3E] whitespace-pre-wrap max-h-[300px] overflow-y-auto">
                     {callTranscript}
@@ -719,7 +719,7 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
                   <Button
                     onClick={() => handleApproval('approve')}
                     disabled={approving}
-                    className="bg-[#045B3F] hover:bg-[#034830] rounded-xl gap-2 shadow-[0_1px_2px_rgba(0,0,0,0.1),0_2px_8px_rgba(4,91,63,0.15)]"
+                    className="bg-[#045B3F] hover:bg-[#034830] gap-2"
                   >
                     {approving && <Loader2 className="h-4 w-4 animate-spin" />}
                     <ShieldCheck className="h-4 w-4" />
@@ -1095,7 +1095,7 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
             <Button
               onClick={handleSaveAndSend}
               disabled={sending || saving || calling || !payee.contact_phone || (verificationInProgress && !canRetry)}
-              className="bg-[#045B3F] hover:bg-[#034830] rounded-xl gap-2 shadow-[0_1px_2px_rgba(0,0,0,0.1),0_2px_8px_rgba(4,91,63,0.15)]"
+              className="bg-[#045B3F] hover:bg-[#034830] gap-2"
             >
               {sending && <Loader2 className="h-4 w-4 animate-spin" />}
               <Send className="h-4 w-4" />
@@ -1105,7 +1105,7 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
               <Button
                 onClick={handleCallPayee}
                 disabled={calling || saving || sending || !phoneLocalNumber || !isCallSupported || (verificationInProgress && !canRetry)}
-                className="bg-[#1D1D1D] hover:bg-[#383B3E] rounded-xl gap-2 shadow-[0_1px_2px_rgba(0,0,0,0.1)]"
+                className="bg-[#1D1D1D] hover:bg-[#383B3E] gap-2"
               >
                 {calling && <Loader2 className="h-4 w-4 animate-spin" />}
                 <Phone className="h-4 w-4" />
