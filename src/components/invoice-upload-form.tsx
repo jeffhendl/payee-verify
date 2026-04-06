@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { FileUp, Loader2, CheckCircle } from 'lucide-react';
+import { Upload, Loader2, CheckCircle, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 
 type UploadState = 'idle' | 'uploading' | 'parsing' | 'done';
@@ -91,12 +91,12 @@ export function InvoiceUploadForm() {
     <Card className="max-w-2xl mx-auto rounded-2xl border-[#E8EAEC] shadow-[0_1px_3px_rgba(0,0,0,0.04),0_6px_24px_rgba(0,0,0,0.03)]">
       <CardContent className="pt-6">
         <div
-          className={`border-2 border-dashed rounded-2xl p-16 text-center transition-colors ${
+          className={`border-2 border-dashed rounded-xl p-12 text-center transition-all ${
             dragActive
-              ? 'border-primary bg-primary/5'
+              ? 'border-[#045B3F] bg-[#F2FCE4]'
               : state === 'idle'
-              ? 'border-[#D3D7DC] hover:border-[#92979C]'
-              : 'border-[#D3D7DC]'
+              ? 'border-[#D3D7DC] hover:border-[#92979C] bg-white'
+              : 'border-[#D3D7DC] bg-white'
           }`}
           onDragOver={(e) => {
             e.preventDefault();
@@ -106,54 +106,73 @@ export function InvoiceUploadForm() {
           onDrop={handleDrop}
         >
           {state === 'idle' && (
-            <>
-              <FileUp className="h-16 w-16 text-[#D3D7DC] mx-auto mb-4" />
-              <p className="text-xl font-medium text-[#383B3E] mb-2">
-                Drop your invoice PDF here
+            <div className="flex flex-col items-center">
+              <div className={`h-12 w-12 rounded-full flex items-center justify-center mb-4 transition-colors ${
+                dragActive ? 'bg-[#045B3F]' : 'bg-[#F2FCE4]'
+              }`}>
+                <Upload className={`h-5 w-5 transition-colors ${
+                  dragActive ? 'text-white' : 'text-[#045B3F]'
+                }`} />
+              </div>
+              <p className="text-base font-medium text-[#383B3E] mb-1">
+                Drop your invoice here
               </p>
-              <p className="text-sm text-[#92979C] mb-4">or click to browse</p>
-              <label className="cursor-pointer inline-flex items-center justify-center rounded-xl border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground">
-                Choose File
-                <input
-                  type="file"
-                  accept="application/pdf"
-                  className="hidden"
-                  onChange={handleFileInput}
-                />
-              </label>
-            </>
+              <p className="text-sm text-[#92979C] mb-5">PDF format, up to 10MB</p>
+              <div className="flex items-center gap-3">
+                <label className="cursor-pointer">
+                  <Button
+                    type="button"
+                    className="bg-[#045B3F] hover:bg-[#034830] h-9 px-4 text-[13px] font-medium pointer-events-none"
+                  >
+                    Browse files
+                  </Button>
+                  <input
+                    type="file"
+                    accept="application/pdf"
+                    className="hidden"
+                    onChange={handleFileInput}
+                  />
+                </label>
+              </div>
+            </div>
           )}
 
           {state === 'uploading' && (
-            <>
-              <Loader2 className="h-12 w-12 text-primary mx-auto mb-4 animate-spin" />
-              <p className="text-lg font-medium text-[#383B3E] mb-1">
-                Uploading {fileName}...
+            <div className="flex flex-col items-center">
+              <div className="h-12 w-12 rounded-full bg-[#F2FCE4] flex items-center justify-center mb-4">
+                <Loader2 className="h-5 w-5 text-[#045B3F] animate-spin" />
+              </div>
+              <p className="text-base font-medium text-[#383B3E] mb-1">
+                Uploading {fileName}
               </p>
               <p className="text-sm text-[#92979C]">Please wait</p>
-            </>
+            </div>
           )}
 
           {state === 'parsing' && (
-            <>
-              <Loader2 className="h-12 w-12 text-primary mx-auto mb-4 animate-spin" />
-              <p className="text-lg font-medium text-[#383B3E] mb-1">
-                Analyzing invoice with AI...
+            <div className="flex flex-col items-center">
+              <div className="h-12 w-12 rounded-full bg-[#F2FCE4] flex items-center justify-center mb-4">
+                <Loader2 className="h-5 w-5 text-[#045B3F] animate-spin" />
+              </div>
+              <p className="text-base font-medium text-[#383B3E] mb-1">
+                Analyzing invoice with AI
               </p>
               <p className="text-sm text-[#92979C]">
                 Extracting payee details, banking information, and invoice data
               </p>
-            </>
+            </div>
           )}
 
           {state === 'done' && (
-            <>
-              <CheckCircle className="h-12 w-12 text-[#30AC2E] mx-auto mb-4" />
-              <p className="text-lg font-medium text-[#383B3E] mb-1">
+            <div className="flex flex-col items-center">
+              <div className="h-12 w-12 rounded-full bg-[#F2FCE4] flex items-center justify-center mb-4">
+                <CheckCircle className="h-5 w-5 text-[#30AC2E]" />
+              </div>
+              <p className="text-base font-medium text-[#383B3E] mb-1">
                 Invoice parsed successfully!
               </p>
               <p className="text-sm text-[#92979C]">Redirecting to review...</p>
-            </>
+            </div>
           )}
         </div>
       </CardContent>
