@@ -35,6 +35,7 @@ export async function upsertKnownPayeeOnApproval(userId: string, payee: Payee): 
     .insert({
       user_id: userId,
       primary_name: payee.company_name || 'Unknown Payee',
+      nickname: payee.company_name || null,
     })
     .select()
     .single();

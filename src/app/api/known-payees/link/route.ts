@@ -92,10 +92,10 @@ export async function POST(request: Request) {
           message: `Matches verified payee "${displayName}". Verification has been skipped.`,
         }
       : {
-          type: 'banking_only',
+          type: 'name_only',
           known_payee_id: knownPayeeId,
           known_payee_name: displayName,
-          message: `Linked to "${displayName}" but banking details don't match any on file. Review carefully.`,
+          message: `Linked to "${displayName}" but banking details are different from what's on file. Please verify via SMS or phone call.`,
         };
 
     // Update payee with link and match result

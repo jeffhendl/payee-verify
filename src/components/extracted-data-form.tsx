@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
-import { Loader2, Send, Save, CheckCircle, XCircle, Clock, AlertTriangle, ShieldCheck, ShieldX, Mail, User, Briefcase, Building2, AlertCircle, Phone, PhoneOff, Play, Link2 } from 'lucide-react';
+import { Loader2, Send, Save, CheckCircle, XCircle, Clock, AlertTriangle, ShieldCheck, ShieldX, Mail, User, Briefcase, Building2, AlertCircle, Phone, PhoneOff, Play, Link2, Unlink } from 'lucide-react';
 import type { Payee, Invoice, Verification, VerificationResponse, VerificationStatus, InvoiceStatus, MatchResult } from '@/lib/types';
 
 interface KnownPayeeOption {
@@ -116,6 +116,7 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
   const [approving, setApproving] = useState(false);
   const [selectedKnownPayeeId, setSelectedKnownPayeeId] = useState('');
   const [linking, setLinking] = useState(false);
+  const [unlinking, setUnlinking] = useState(false);
   const supabase = createClient();
 
   const isKnownPayeeMatch = matchResult && (matchResult.type === 'banking_and_name' || matchResult.type === 'banking_only');
@@ -443,6 +444,28 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
     }
   };
 
+  const handleUnlink = async () => {
+    setUnlinking(true);
+    try {
+      const res = await fetch('/api/known-payees/unlink', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payeeId: payee.id }),
+      });
+      if (!res.ok) throw new Error('Failed to unlink');
+      setMatchResult(null);
+      setPayee(prev => ({ ...prev, known_payee_id: null, match_result: null }));
+      if (invoiceStatus === 'pending_review' && !verification) {
+        setInvoiceStatus('parsed');
+      }
+      toast.success('Unlinked from known payee');
+    } catch {
+      toast.error('Failed to unlink');
+    } finally {
+      setUnlinking(false);
+    }
+  };
+
   // Name mismatch detection
   const responseData = verification?.response_data as VerificationResponse | null;
   const respondentName = (responseData?.respondent_name as string) || '';
@@ -540,21 +563,33 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
             : 'border-[#F12D1B] bg-[#FEF1ED]'
         }`}>
           <CardContent className="pt-5 pb-5">
-            <div className="flex items-start gap-3">
-              {matchResult.type === 'name_only' ? (
-                <AlertTriangle className="h-5 w-5 text-[#F12D1B] flex-shrink-0 mt-0.5" />
-              ) : matchResult.type === 'banking_only' ? (
-                <AlertCircle className="h-5 w-5 text-[#D97706] flex-shrink-0 mt-0.5" />
-              ) : (
-                <CheckCircle className="h-5 w-5 text-[#30AC2E] flex-shrink-0 mt-0.5" />
-              )}
-              <p className={`text-sm font-medium ${
-                matchResult.type === 'banking_and_name' ? 'text-[#166534]'
-                  : matchResult.type === 'banking_only' ? 'text-[#92400E]'
-                  : 'text-[#991B1B]'
-              }`}>
-                {matchResult.message}
-              </p>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                {matchResult.type === 'name_only' ? (
+                  <AlertTriangle className="h-5 w-5 text-[#F12D1B] flex-shrink-0 mt-0.5" />
+                ) : matchResult.type === 'banking_only' ? (
+                  <AlertCircle className="h-5 w-5 text-[#D97706] flex-shrink-0 mt-0.5" />
+                ) : (
+                  <CheckCircle className="h-5 w-5 text-[#30AC2E] flex-shrink-0 mt-0.5" />
+                )}
+                <p className={`text-sm font-medium ${
+                  matchResult.type === 'banking_and_name' ? 'text-[#166534]'
+                    : matchResult.type === 'banking_only' ? 'text-[#92400E]'
+                    : 'text-[#991B1B]'
+                }`}>
+                  {matchResult.message}
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleUnlink}
+                disabled={unlinking}
+                className="shrink-0 text-[#92979C] hover:text-[#383B3E] gap-1.5"
+              >
+                {unlinking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Unlink className="h-3.5 w-3.5" />}
+                Unlink
+              </Button>
             </div>
           </CardContent>
         </Card>
