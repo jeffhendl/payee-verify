@@ -9,13 +9,21 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
-import { Loader2, Send, Save, CheckCircle, XCircle, Clock, AlertTriangle, ShieldCheck, ShieldX, Mail, User, Briefcase, Building2, AlertCircle, Phone, PhoneOff, Play } from 'lucide-react';
-import type { Payee, Invoice, Verification, VerificationResponse, VerificationStatus, InvoiceStatus } from '@/lib/types';
+import { Loader2, Send, Save, CheckCircle, XCircle, Clock, AlertTriangle, ShieldCheck, ShieldX, Mail, User, Briefcase, Building2, AlertCircle, Phone, PhoneOff, Play, Link2 } from 'lucide-react';
+import type { Payee, Invoice, Verification, VerificationResponse, VerificationStatus, InvoiceStatus, MatchResult } from '@/lib/types';
+
+interface KnownPayeeOption {
+  id: string;
+  primary_name: string;
+  nickname: string | null;
+}
 
 interface ExtractedDataFormProps {
   invoice: Invoice;
   payee: Payee;
   verification: Verification | null;
+  matchResult?: MatchResult | null;
+  knownPayees?: KnownPayeeOption[];
 }
 
 function getVerificationStatusConfig(status: VerificationStatus, isPhoneCall: boolean): { label: string; color: string; icon: React.ReactNode } {
@@ -97,15 +105,20 @@ function splitPhoneNumber(phone: string | null): { countryCode: string; localNum
   return { countryCode: '+1', localNumber: cleaned.replace(/^\+/, '') };
 }
 
-export function ExtractedDataForm({ invoice, payee: initialPayee, verification: initialVerification }: ExtractedDataFormProps) {
+export function ExtractedDataForm({ invoice, payee: initialPayee, verification: initialVerification, matchResult: initialMatchResult, knownPayees = [] }: ExtractedDataFormProps) {
   const [payee, setPayee] = useState(initialPayee);
   const [verification, setVerification] = useState(initialVerification);
   const [invoiceStatus, setInvoiceStatus] = useState<InvoiceStatus>(invoice.status);
+  const [matchResult, setMatchResult] = useState<MatchResult | null>(initialMatchResult || null);
   const [saving, setSaving] = useState(false);
   const [sending, setSending] = useState(false);
   const [calling, setCalling] = useState(false);
   const [approving, setApproving] = useState(false);
+  const [selectedKnownPayeeId, setSelectedKnownPayeeId] = useState('');
+  const [linking, setLinking] = useState(false);
   const supabase = createClient();
+
+  const isKnownPayeeMatch = matchResult && (matchResult.type === 'banking_and_name' || matchResult.type === 'banking_only');
 
   // Phone country code state
   const initialPhone = splitPhoneNumber(initialPayee.contact_phone);
@@ -407,6 +420,29 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
     }
   };
 
+  const handleLinkToKnownPayee = async () => {
+    if (!selectedKnownPayeeId) return;
+    setLinking(true);
+    try {
+      const res = await fetch('/api/known-payees/link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payeeId: payee.id, knownPayeeId: selectedKnownPayeeId }),
+      });
+      if (!res.ok) throw new Error('Failed to link');
+      const data = await res.json();
+      setMatchResult(data.matchResult);
+      if (data.matchResult?.type === 'banking_and_name' || data.matchResult?.type === 'banking_only') {
+        setInvoiceStatus('pending_review');
+      }
+      toast.success('Linked to known payee');
+    } catch {
+      toast.error('Failed to link to known payee');
+    } finally {
+      setLinking(false);
+    }
+  };
+
   // Name mismatch detection
   const responseData = verification?.response_data as VerificationResponse | null;
   const respondentName = (responseData?.respondent_name as string) || '';
@@ -437,10 +473,14 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
               <ShieldCheck className="h-6 w-6 text-[#045B3F] flex-shrink-0 mt-0.5" />
               <div>
                 <p className="text-base font-semibold text-[#045B3F]">
-                  {isCallCompleted ? 'Call Completed — Your Review Required' : 'Payee Confirmed — Your Approval Required'}
+                  {isKnownPayeeMatch ? 'Known Payee Match — Your Approval Required'
+                    : isCallCompleted ? 'Call Completed — Your Review Required'
+                    : 'Payee Confirmed — Your Approval Required'}
                 </p>
                 <p className="text-sm text-[#4A7C6A] mt-1">
-                  {isCallCompleted
+                  {isKnownPayeeMatch
+                    ? 'This invoice matches a previously verified payee. Review the details below and approve or reject.'
+                    : isCallCompleted
                     ? 'The AI verification call has completed. Review the call results below and approve or reject.'
                     : 'The payee has confirmed the invoice details. Review the information below and approve or reject.'}
                 </p>
@@ -487,6 +527,71 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
             <div className="flex items-center gap-3">
               <ShieldX className="h-6 w-6 text-[#F12D1B]" />
               <p className="text-base font-semibold text-[#F12D1B]">Rejected</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Known Payee Match Banner */}
+      {matchResult && matchResult.type !== 'none' && !isFinalized && (
+        <Card className={`rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04)] ${
+          matchResult.type === 'banking_and_name' ? 'border-[#30AC2E] bg-[#F2FCE4]'
+            : matchResult.type === 'banking_only' ? 'border-[#D97706] bg-[#FFFBEB]'
+            : 'border-[#F12D1B] bg-[#FEF1ED]'
+        }`}>
+          <CardContent className="pt-5 pb-5">
+            <div className="flex items-start gap-3">
+              {matchResult.type === 'name_only' ? (
+                <AlertTriangle className="h-5 w-5 text-[#F12D1B] flex-shrink-0 mt-0.5" />
+              ) : matchResult.type === 'banking_only' ? (
+                <AlertCircle className="h-5 w-5 text-[#D97706] flex-shrink-0 mt-0.5" />
+              ) : (
+                <CheckCircle className="h-5 w-5 text-[#30AC2E] flex-shrink-0 mt-0.5" />
+              )}
+              <p className={`text-sm font-medium ${
+                matchResult.type === 'banking_and_name' ? 'text-[#166534]'
+                  : matchResult.type === 'banking_only' ? 'text-[#92400E]'
+                  : 'text-[#991B1B]'
+              }`}>
+                {matchResult.message}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Manual Match to Known Payee */}
+      {(!matchResult || matchResult.type === 'none' || matchResult.type === 'name_only') && !isFinalized && !isPendingReview && knownPayees.length > 0 && (
+        <Card className="rounded-2xl border-[#E8EAEC] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+          <CardContent className="pt-5 pb-5">
+            <div className="flex items-center gap-3">
+              <Link2 className="h-5 w-5 text-[#606265] flex-shrink-0" />
+              <div className="flex items-center gap-2 flex-1">
+                <label className="text-sm font-medium text-[#383B3E] whitespace-nowrap">Link to known payee:</label>
+                <select
+                  className="flex h-9 flex-1 rounded-lg border border-input bg-transparent px-3 py-1 text-sm"
+                  value={selectedKnownPayeeId}
+                  onChange={(e) => setSelectedKnownPayeeId(e.target.value)}
+                >
+                  <option value="">None (new payee)</option>
+                  {knownPayees.map((kp) => (
+                    <option key={kp.id} value={kp.id}>
+                      {kp.nickname ? `${kp.nickname} (${kp.primary_name})` : kp.primary_name}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleLinkToKnownPayee}
+                  disabled={!selectedKnownPayeeId || linking}
+                  className="gap-1.5 shrink-0"
+                >
+                  {linking && <Loader2 className="h-3 w-3 animate-spin" />}
+                  <Link2 className="h-3 w-3" />
+                  Link
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -1082,8 +1187,8 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
         </CardContent>
       </Card>
 
-      {/* Actions — only show when editable or can retry */}
-      {!isFinalized && (!isPendingReview || canRetry) && (
+      {/* Actions — only show when editable or can retry, hide when known payee match */}
+      {!isFinalized && (!isPendingReview || canRetry) && !isKnownPayeeMatch && (
         <>
           <Separator />
           <div className="flex gap-3 justify-end">

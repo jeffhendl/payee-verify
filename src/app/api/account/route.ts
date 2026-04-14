@@ -18,6 +18,12 @@ export async function DELETE() {
       .select('id, file_path')
       .eq('user_id', userId);
 
+    // Delete known payees (cascades to aliases and banking details)
+    await supabaseAdmin
+      .from('known_payees')
+      .delete()
+      .eq('user_id', userId);
+
     if (invoices && invoices.length > 0) {
       const invoiceIds = invoices.map((i) => i.id);
 

@@ -14,7 +14,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { FileUp, LayoutDashboard, LogOut, BookOpen, User, Settings, ChevronDown } from 'lucide-react';
+import { FileUp, LayoutDashboard, LogOut, BookOpen, User, Settings, ChevronDown, Users } from 'lucide-react';
 
 export function NavBar() {
   const router = useRouter();
@@ -58,6 +58,12 @@ export function NavBar() {
               <Button variant="ghost" className={navItemClass('/upload')}>
                 <FileUp className="h-4 w-4" />
                 Upload
+              </Button>
+            </Link>
+            <Link href="/payees">
+              <Button variant="ghost" className={navItemClass('/payees')}>
+                <Users className="h-4 w-4" />
+                Payees
               </Button>
             </Link>
             <Link href="/blog">

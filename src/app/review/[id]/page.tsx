@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { NavBar } from '@/components/nav-bar';
 import { ExtractedDataForm } from '@/components/extracted-data-form';
 import { PdfPreview } from '@/components/pdf-preview';
-import type { Invoice, Payee, Verification } from '@/lib/types';
+import type { Invoice, Payee, Verification, MatchResult } from '@/lib/types';
 
 export default async function ReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -45,6 +45,16 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
 
   const verification = verifications?.[0] || null;
 
+  // Fetch user's known payees for manual matching dropdown
+  const { data: knownPayees } = await supabase
+    .from('known_payees')
+    .select('id, primary_name, nickname')
+    .eq('user_id', user.id)
+    .order('primary_name');
+
+  // Get match result from payee record
+  const matchResult = (payee as Payee).match_result as MatchResult | null;
+
   // If verification is confirmed but invoice status is stale, fix it
   if (verification?.status === 'confirmed' && (invoice as Invoice).status === 'verification_sent') {
     await supabase
@@ -59,9 +69,14 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
   const isVerified = (invoice as Invoice).status === 'verified';
   const isDenied = (invoice as Invoice).status === 'denied';
 
+  const isKnownPayeeMatch = matchResult && (matchResult.type === 'banking_and_name' || matchResult.type === 'banking_only');
+
   let title = 'Review Extracted Data';
   let subtitle = `Review and edit the details extracted from`;
-  if (isPendingReview) {
+  if (isPendingReview && isKnownPayeeMatch) {
+    title = 'Review Matched Invoice';
+    subtitle = `This invoice matches a known payee. Review and approve for`;
+  } else if (isPendingReview) {
     title = 'Review Payee Response';
     subtitle = `The payee has confirmed the details. Review and approve for`;
   } else if (isVerified) {
@@ -88,6 +103,8 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
               invoice={invoice as Invoice}
               payee={payee as Payee}
               verification={verification as Verification | null}
+              matchResult={matchResult}
+              knownPayees={knownPayees || []}
             />
           </div>
           <div className="hidden lg:flex lg:flex-col gap-6 sticky top-24 self-start max-h-[calc(100vh-7rem)] min-w-0">

@@ -80,7 +80,7 @@ export function VerificationResponseForm({ token, payee, bankingMissing }: Verif
   const [bankingErrors, setBankingErrors] = useState<BankingErrors>({});
 
   const formattedAmount = payee.invoice_amount
-    ? new Intl.NumberFormat('en-US', { style: 'currency', currency: payee.currency }).format(payee.invoice_amount)
+    ? (payee.currency === 'USD' ? 'US' : 'CA') + new Intl.NumberFormat('en-US', { style: 'currency', currency: payee.currency, currencyDisplay: 'narrowSymbol' }).format(payee.invoice_amount)
     : 'N/A';
 
   const handleSubmit = async (confirmed: boolean) => {

@@ -67,7 +67,7 @@ export function DashboardTable({ invoices }: { invoices: DashboardInvoice[] }) {
           const amount = payee?.invoice_amount;
           const currency = payee?.currency || 'USD';
           const formatted = amount
-            ? new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount)
+            ? (currency === 'USD' ? 'US' : 'CA') + new Intl.NumberFormat('en-US', { style: 'currency', currency, currencyDisplay: 'narrowSymbol' }).format(amount)
             : '—';
 
           return (

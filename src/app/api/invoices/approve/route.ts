@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { upsertKnownPayeeOnApproval } from '@/lib/known-payee-operations';
+import type { Payee } from '@/lib/types';
 
 export async function POST(request: Request) {
   try {
@@ -68,6 +70,23 @@ export async function POST(request: Request) {
     if (updateError) {
       console.error('Invoice approve update error:', updateError, { invoiceId, action, newStatus });
       return NextResponse.json({ error: `Failed to update invoice: ${updateError.message}` }, { status: 500 });
+    }
+
+    // On approval, create or update known payee
+    if (action === 'approve') {
+      const { data: payee } = await supabaseAdmin
+        .from('payees')
+        .select('*')
+        .eq('invoice_id', invoiceId)
+        .single();
+
+      if (payee) {
+        try {
+          await upsertKnownPayeeOnApproval(user.id, payee as Payee);
+        } catch (knownPayeeError) {
+          console.error('Known payee upsert error (non-fatal):', knownPayeeError);
+        }
+      }
     }
 
     return NextResponse.json({ success: true, status: newStatus });

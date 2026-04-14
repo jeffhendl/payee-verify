@@ -38,8 +38,49 @@ export interface Payee {
   invoice_date: string | null;
   due_date: string | null;
   currency: 'USD' | 'CAD';
+  known_payee_id: string | null;
+  match_result: MatchResult | null;
   created_at: string;
   updated_at: string;
+}
+
+export type MatchResultType = 'banking_and_name' | 'banking_only' | 'name_only' | 'none';
+
+export interface MatchResult {
+  type: MatchResultType;
+  known_payee_id?: string;
+  known_payee_name?: string;
+  message?: string;
+}
+
+export interface KnownPayee {
+  id: string;
+  user_id: string;
+  primary_name: string;
+  nickname: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface KnownPayeeAlias {
+  id: string;
+  known_payee_id: string;
+  alias: string;
+  created_at: string;
+}
+
+export interface KnownPayeeBankingDetails {
+  id: string;
+  known_payee_id: string;
+  country: Country;
+  aba_routing_number: string | null;
+  account_number: string | null;
+  transit_number: string | null;
+  institution_number: string | null;
+  bank_name: string | null;
+  account_type: 'checking' | 'savings' | null;
+  currency: 'USD' | 'CAD';
+  created_at: string;
 }
 
 export interface Verification {

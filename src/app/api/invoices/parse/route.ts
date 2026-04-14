@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { parseInvoice } from '@/lib/claude';
+import { matchKnownPayee } from '@/lib/known-payee-matching';
 
 export async function POST(request: Request) {
   try {
@@ -110,9 +112,40 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Failed to save payee data' }, { status: 500 });
     }
 
+    // Match against known payees
+    const matchResult = await matchKnownPayee(user.id, {
+      company_name: payee.company_name,
+      country: payee.country || 'US',
+      aba_routing_number: payee.aba_routing_number,
+      account_number: payee.account_number,
+      transit_number: payee.transit_number,
+      institution_number: payee.institution_number,
+    });
+
+    if (matchResult.type !== 'none') {
+      // Store match result on payee
+      const updateData: Record<string, unknown> = { match_result: matchResult };
+
+      if (matchResult.type === 'banking_and_name' || matchResult.type === 'banking_only') {
+        // Link to known payee and skip verification
+        updateData.known_payee_id = matchResult.known_payee_id;
+
+        await supabaseAdmin
+          .from('invoices')
+          .update({ status: 'pending_review', updated_at: new Date().toISOString() })
+          .eq('id', invoiceId);
+      }
+
+      await supabaseAdmin
+        .from('payees')
+        .update(updateData)
+        .eq('id', payee.id);
+    }
+
     return NextResponse.json({
       payeeId: payee.id,
       data: parsed,
+      matchResult,
     });
   } catch (error) {
     console.error('Parse error:', error);

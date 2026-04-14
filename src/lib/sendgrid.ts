@@ -12,9 +12,10 @@ interface VerificationEmailParams {
 }
 
 export async function sendVerificationEmail(params: VerificationEmailParams) {
-  const formattedAmount = new Intl.NumberFormat('en-US', {
+  const formattedAmount = (params.currency === 'USD' ? 'US' : 'CA') + new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: params.currency,
+    currencyDisplay: 'narrowSymbol',
   }).format(params.invoiceAmount);
 
   const msg = {

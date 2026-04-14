@@ -23,6 +23,12 @@ export async function DELETE() {
       return NextResponse.json({ error: 'Failed to fetch invoices' }, { status: 500 });
     }
 
+    // Delete known payees (cascades to aliases and banking details)
+    await supabaseAdmin
+      .from('known_payees')
+      .delete()
+      .eq('user_id', userId);
+
     if (invoices && invoices.length > 0) {
       const invoiceIds = invoices.map((i) => i.id);
 
