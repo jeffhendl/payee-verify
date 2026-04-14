@@ -5,7 +5,16 @@ import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
-import { FileUp, LayoutDashboard, LogOut, BookOpen } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuPortal,
+  DropdownMenuPositioner,
+  DropdownMenuPopup,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+import { FileUp, LayoutDashboard, LogOut, BookOpen, User, Settings, ChevronDown } from 'lucide-react';
 
 export function NavBar() {
   const router = useRouter();
@@ -59,14 +68,35 @@ export function NavBar() {
             </Link>
           </div>
         </div>
-        <Button
-          variant="ghost"
-          onClick={handleSignOut}
-          className="gap-2 rounded-lg text-[13px] font-medium h-8 px-3 text-[#606265] hover:text-[#383B3E] hover:bg-[#F2F2F2]"
-        >
-          <LogOut className="h-4 w-4" />
-          Sign Out
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <Button
+                variant="ghost"
+                className="gap-2 rounded-lg text-[13px] font-medium h-8 px-3 text-[#606265] hover:text-[#383B3E] hover:bg-[#F2F2F2]"
+              />
+            }
+          >
+            <User className="h-4 w-4" />
+            Account
+            <ChevronDown className="h-3 w-3 opacity-60" />
+          </DropdownMenuTrigger>
+          <DropdownMenuPortal>
+            <DropdownMenuPositioner align="end" sideOffset={4}>
+              <DropdownMenuPopup>
+                <DropdownMenuItem onClick={() => router.push('/account')}>
+                  <Settings className="h-4 w-4" />
+                  Manage Account
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut}>
+                  <LogOut className="h-4 w-4" />
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuPopup>
+            </DropdownMenuPositioner>
+          </DropdownMenuPortal>
+        </DropdownMenu>
       </div>
     </nav>
   );
