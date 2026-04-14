@@ -127,14 +127,25 @@ export default async function VerifyPage({ params }: { params: Promise<{ token: 
           <p className="text-sm text-[#92979C] leading-relaxed mb-4">
             Loop is a global payments platform that helps businesses send and receive international payments more efficiently. Companies use Loop to pay vendors globally, manage multiple currencies, and reduce cross-border payment costs.
           </p>
-          <a
-            href="https://bankonloop.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-[#045B3F] hover:underline"
-          >
-            Learn more about Loop &rarr;
-          </a>
+          <div className="flex items-center gap-4">
+            <a
+              href="https://bankonloop.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-[#045B3F] hover:underline"
+            >
+              Learn more about Loop &rarr;
+            </a>
+            <span className="text-[#92979C]">·</span>
+            <a
+              href="https://www.bankonloop.com/en-ca/legal#privacy-policy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-[#92979C] hover:underline"
+            >
+              Privacy Policy
+            </a>
+          </div>
         </div>
       </div>
     </div>

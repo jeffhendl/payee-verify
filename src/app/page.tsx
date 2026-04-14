@@ -117,9 +117,14 @@ export default async function DashboardPage() {
         {/* Footer */}
         <div className="mt-12 pt-8 border-t border-[#E8EAEC] flex items-center justify-between text-xs text-[#92979C]">
           <p>Verification results are based on automated checks. Always confirm payment details independently before transferring funds.</p>
-          <a href="https://bankonloop.com" target="_blank" rel="noopener noreferrer" className="font-medium text-[#045B3F] hover:underline whitespace-nowrap ml-4">
-            Powered by Loop
-          </a>
+          <div className="flex items-center gap-4 whitespace-nowrap ml-4">
+            <a href="https://www.bankonloop.com/en-ca/legal#privacy-policy" target="_blank" rel="noopener noreferrer" className="hover:underline">
+              Privacy Policy
+            </a>
+            <a href="https://bankonloop.com" target="_blank" rel="noopener noreferrer" className="font-medium text-[#045B3F] hover:underline">
+              Powered by Loop
+            </a>
+          </div>
         </div>
       </main>
     </div>

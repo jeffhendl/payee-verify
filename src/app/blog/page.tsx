@@ -86,12 +86,21 @@ export default function BlogPage() {
 
       {/* Footer */}
       <footer className="border-t border-[#E8EAEC] bg-white">
-        <div className="max-w-3xl mx-auto px-6 py-8 text-center">
+        <div className="max-w-3xl mx-auto px-6 py-8 flex items-center justify-center gap-4 text-[13px] text-[#71717A]">
+          <a
+            href="https://www.bankonloop.com/en-ca/legal#privacy-policy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-[#045B3F] transition-colors"
+          >
+            Privacy Policy
+          </a>
+          <span>·</span>
           <a
             href="https://bankonloop.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[13px] text-[#71717A] hover:text-[#045B3F] transition-colors"
+            className="hover:text-[#045B3F] transition-colors"
           >
             Powered by Loop
           </a>
