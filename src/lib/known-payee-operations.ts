@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { hasBankingDetails } from '@/lib/utils';
 import type { Payee } from '@/lib/types';
 
 export async function upsertKnownPayeeOnApproval(userId: string, payee: Payee): Promise<void> {
@@ -56,7 +57,7 @@ export async function upsertKnownPayeeOnApproval(userId: string, payee: Payee): 
   }
 
   // Add banking details
-  await addBankingDetails(newKnownPayee.id, payee);
+  await insertBankingDetails(newKnownPayee.id, payee);
 
   // Link the invoice payee to the known payee
   await supabaseAdmin
@@ -67,8 +68,6 @@ export async function upsertKnownPayeeOnApproval(userId: string, payee: Payee): 
 
 async function addAliasIfNew(knownPayeeId: string, alias: string): Promise<void> {
   if (!alias) return;
-
-  // upsert-style: insert and ignore conflict
   await supabaseAdmin
     .from('known_payee_aliases')
     .upsert(
@@ -77,66 +76,58 @@ async function addAliasIfNew(knownPayeeId: string, alias: string): Promise<void>
     );
 }
 
+function normalize(val: string | null | undefined): string {
+  return (val || '').trim().replace(/[\s-]/g, '');
+}
+
 async function addBankingIfNew(knownPayeeId: string, payee: Payee): Promise<void> {
-  const hasBanking = payee.country === 'US'
-    ? (payee.aba_routing_number && payee.account_number)
-    : (payee.transit_number && payee.institution_number && payee.account_number);
+  if (!hasBankingDetails(payee)) return;
 
-  if (!hasBanking) return;
-
-  // Check if identical banking details already exist
+  // Fetch existing banking for this known payee
   const { data: existing } = await supabaseAdmin
     .from('known_payee_banking_details')
-    .select('id')
-    .eq('known_payee_id', knownPayeeId)
-    .eq('account_number', payee.account_number!.trim());
+    .select('*')
+    .eq('known_payee_id', knownPayeeId);
 
   if (existing && existing.length > 0) {
-    // Check more specifically
     for (const e of existing) {
-      // If account number matches, check routing/transit
-      const { data: detail } = await supabaseAdmin
-        .from('known_payee_banking_details')
-        .select('*')
-        .eq('id', e.id)
-        .single();
-
-      if (!detail) continue;
-
-      if (payee.country === 'US') {
-        if (detail.aba_routing_number?.trim() === payee.aba_routing_number?.trim()) {
-          return; // Already exists
-        }
-      } else {
-        if (
-          detail.transit_number?.trim() === payee.transit_number?.trim() &&
-          detail.institution_number?.trim() === payee.institution_number?.trim()
-        ) {
-          return; // Already exists
-        }
-      }
+      // Check for duplicate based on the primary identifier for each rail
+      if (payee.iban && e.iban && normalize(payee.iban).toUpperCase() === normalize(e.iban).toUpperCase()) return;
+      if (payee.aba_routing_number && e.aba_routing_number &&
+          normalize(payee.aba_routing_number) === normalize(e.aba_routing_number) &&
+          normalize(payee.account_number) === normalize(e.account_number)) return;
+      if (payee.transit_number && e.transit_number &&
+          normalize(payee.transit_number) === normalize(e.transit_number) &&
+          normalize(payee.institution_number) === normalize(e.institution_number) &&
+          normalize(payee.account_number) === normalize(e.account_number)) return;
+      if (payee.swift_code && e.swift_code &&
+          normalize(payee.swift_code).toUpperCase() === normalize(e.swift_code).toUpperCase() &&
+          normalize(payee.account_number) === normalize(e.account_number)) return;
+      if (payee.sort_code && e.sort_code &&
+          normalize(payee.sort_code) === normalize(e.sort_code) &&
+          normalize(payee.account_number) === normalize(e.account_number)) return;
     }
   }
 
-  await addBankingDetails(knownPayeeId, payee);
+  await insertBankingDetails(knownPayeeId, payee);
 }
 
-async function addBankingDetails(knownPayeeId: string, payee: Payee): Promise<void> {
-  const hasBanking = payee.country === 'US'
-    ? (payee.aba_routing_number && payee.account_number)
-    : (payee.transit_number && payee.institution_number && payee.account_number);
-
-  if (!hasBanking) return;
+async function insertBankingDetails(knownPayeeId: string, payee: Payee): Promise<void> {
+  if (!hasBankingDetails(payee)) return;
 
   await supabaseAdmin
     .from('known_payee_banking_details')
     .insert({
       known_payee_id: knownPayeeId,
       country: payee.country,
+      payment_rail: payee.payment_rail,
       aba_routing_number: payee.aba_routing_number,
       account_number: payee.account_number,
       transit_number: payee.transit_number,
       institution_number: payee.institution_number,
+      swift_code: payee.swift_code,
+      iban: payee.iban,
+      sort_code: payee.sort_code,
       bank_name: payee.bank_name,
       account_type: payee.account_type,
       currency: payee.currency,

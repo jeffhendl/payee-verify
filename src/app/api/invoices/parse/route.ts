@@ -92,12 +92,17 @@ export async function POST(request: Request) {
         state_province: parsed.payee.state_province,
         postal_code: parsed.payee.postal_code,
         country: parsed.payee.country || 'US',
+        payment_rail: parsed.payee.payment_rail || null,
         aba_routing_number: parsed.payee.aba_routing_number,
         account_number: parsed.payee.account_number,
         transit_number: parsed.payee.transit_number,
         institution_number: parsed.payee.institution_number,
+        swift_code: parsed.payee.swift_code || null,
+        iban: parsed.payee.iban || null,
+        sort_code: parsed.payee.sort_code || null,
         bank_name: parsed.payee.bank_name,
         account_type: parsed.payee.account_type,
+        intermediary_bank_detected: parsed.payee.intermediary_bank_detected || false,
         invoice_number: parsed.payee.invoice_number,
         invoice_amount: parsed.payee.invoice_amount,
         invoice_date: parsed.payee.invoice_date,
@@ -115,11 +120,14 @@ export async function POST(request: Request) {
     // Match against known payees
     const matchResult = await matchKnownPayee(user.id, {
       company_name: payee.company_name,
-      country: payee.country || 'US',
+      payment_rail: payee.payment_rail,
       aba_routing_number: payee.aba_routing_number,
       account_number: payee.account_number,
       transit_number: payee.transit_number,
       institution_number: payee.institution_number,
+      swift_code: payee.swift_code,
+      iban: payee.iban,
+      sort_code: payee.sort_code,
     });
 
     if (matchResult.type !== 'none') {

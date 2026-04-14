@@ -57,6 +57,10 @@ export async function POST(request: Request) {
       if (banking_details.aba_routing_number) bankingUpdate.aba_routing_number = banking_details.aba_routing_number;
       if (banking_details.transit_number) bankingUpdate.transit_number = banking_details.transit_number;
       if (banking_details.institution_number) bankingUpdate.institution_number = banking_details.institution_number;
+      if (banking_details.swift_code) bankingUpdate.swift_code = banking_details.swift_code;
+      if (banking_details.iban) bankingUpdate.iban = banking_details.iban;
+      if (banking_details.sort_code) bankingUpdate.sort_code = banking_details.sort_code;
+      if (banking_details.payment_rail) bankingUpdate.payment_rail = banking_details.payment_rail;
       if (banking_details.account_type) bankingUpdate.account_type = banking_details.account_type;
 
       if (Object.keys(bankingUpdate).length > 0) {

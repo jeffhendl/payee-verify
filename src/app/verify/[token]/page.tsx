@@ -60,7 +60,7 @@ export default async function VerifyPage({ params }: { params: Promise<{ token: 
   // Fetch the payee details
   const { data: payee } = await supabaseAdmin
     .from('payees')
-    .select('company_name, invoice_number, invoice_amount, currency, bank_name, aba_routing_number, account_number, transit_number, institution_number, country')
+    .select('company_name, invoice_number, invoice_amount, currency, bank_name, aba_routing_number, account_number, transit_number, institution_number, swift_code, iban, sort_code, country, payment_rail')
     .eq('id', verification.payee_id)
     .single();
 
@@ -79,9 +79,8 @@ export default async function VerifyPage({ params }: { params: Promise<{ token: 
   }
 
   // Check if banking details are missing
-  const bankingMissing = payee.country === 'US'
-    ? (!payee.aba_routing_number || !payee.account_number)
-    : (!payee.transit_number || !payee.institution_number || !payee.account_number);
+  const { hasBankingDetails } = await import('@/lib/utils');
+  const bankingMissing = !hasBankingDetails(payee);
 
   return (
     <div className="min-h-screen bg-white px-4 py-8">

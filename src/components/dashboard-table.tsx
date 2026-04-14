@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { InvoiceStatusBadge } from './invoice-status-badge';
 import { FileText, FileUp } from 'lucide-react';
 import type { InvoiceStatus } from '@/lib/types';
+import { formatCurrency } from '@/lib/utils';
 
 interface DashboardInvoice {
   id: string;
@@ -67,7 +68,7 @@ export function DashboardTable({ invoices }: { invoices: DashboardInvoice[] }) {
           const amount = payee?.invoice_amount;
           const currency = payee?.currency || 'USD';
           const formatted = amount
-            ? (currency === 'USD' ? 'US' : 'CA') + new Intl.NumberFormat('en-US', { style: 'currency', currency, currencyDisplay: 'narrowSymbol' }).format(amount)
+            ? formatCurrency(amount, currency)
             : '—';
 
           return (

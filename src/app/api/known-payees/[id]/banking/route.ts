@@ -29,11 +29,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       .from('known_payee_banking_details')
       .insert({
         known_payee_id: id,
-        country: body.country || 'US',
+        country: body.country || '',
+        payment_rail: body.payment_rail || null,
         aba_routing_number: body.aba_routing_number || null,
         account_number: body.account_number || null,
         transit_number: body.transit_number || null,
         institution_number: body.institution_number || null,
+        swift_code: body.swift_code || null,
+        iban: body.iban || null,
+        sort_code: body.sort_code || null,
         bank_name: body.bank_name || null,
         account_type: body.account_type || null,
         currency: body.currency || 'USD',

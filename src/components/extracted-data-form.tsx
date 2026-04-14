@@ -10,7 +10,9 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { Loader2, Send, Save, CheckCircle, XCircle, Clock, AlertTriangle, ShieldCheck, ShieldX, Mail, User, Briefcase, Building2, AlertCircle, Phone, PhoneOff, Play, Link2, Unlink } from 'lucide-react';
-import type { Payee, Invoice, Verification, VerificationResponse, VerificationStatus, InvoiceStatus, MatchResult } from '@/lib/types';
+import type { Payee, Invoice, Verification, VerificationResponse, VerificationStatus, InvoiceStatus, MatchResult, PaymentRail } from '@/lib/types';
+import { PAYMENT_RAIL_CONFIG } from '@/lib/types';
+import { hasBankingDetails } from '@/lib/utils';
 
 interface KnownPayeeOption {
   id: string;
@@ -70,10 +72,7 @@ function getMissingFields(payee: Payee): MissingField[] {
   if (!payee.contact_name) missing.push({ label: 'Contact Name', severity: 'warning' });
 
   // Banking details — warning
-  const hasBanking = payee.country === 'US'
-    ? (payee.aba_routing_number && payee.account_number)
-    : (payee.transit_number && payee.institution_number && payee.account_number);
-  if (!hasBanking) missing.push({ label: 'Banking Details (will be requested from payee during verification)', severity: 'warning' });
+  if (!hasBankingDetails(payee)) missing.push({ label: 'Banking Details (will be requested from payee during verification)', severity: 'warning' });
 
   return missing;
 }
@@ -223,6 +222,10 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
         invoice_date: payee.invoice_date,
         due_date: payee.due_date,
         currency: payee.currency,
+        payment_rail: payee.payment_rail,
+        swift_code: payee.swift_code,
+        iban: payee.iban,
+        sort_code: payee.sort_code,
         updated_at: new Date().toISOString(),
       })
       .eq('id', payee.id);
@@ -271,6 +274,10 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
         invoice_date: payee.invoice_date,
         due_date: payee.due_date,
         currency: payee.currency,
+        payment_rail: payee.payment_rail,
+        swift_code: payee.swift_code,
+        iban: payee.iban,
+        sort_code: payee.sort_code,
         updated_at: new Date().toISOString(),
       })
       .eq('id', payee.id);
@@ -352,6 +359,10 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
         invoice_date: payee.invoice_date,
         due_date: payee.due_date,
         currency: payee.currency,
+        payment_rail: payee.payment_rail,
+        swift_code: payee.swift_code,
+        iban: payee.iban,
+        sort_code: payee.sort_code,
         updated_at: new Date().toISOString(),
       })
       .eq('id', payee.id);
@@ -394,6 +405,28 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
       toast.error(error instanceof Error ? error.message : 'Failed to call');
     } finally {
       setCalling(false);
+    }
+  };
+
+  const handleManualVerify = async () => {
+    // Save first
+    const saved = await handleSave();
+    if (!saved) return;
+
+    try {
+      const res = await fetch('/api/invoices/manual-verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ invoiceId: invoice.id }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to mark as manually verified');
+      }
+      setInvoiceStatus('pending_review');
+      toast.success('Invoice marked as manually verified. You can now approve or reject.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Something went wrong');
     }
   };
 
@@ -992,6 +1025,8 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
             >
               <option value="USD">USD</option>
               <option value="CAD">CAD</option>
+              <option value="EUR">EUR</option>
+              <option value="GBP">GBP</option>
             </select>
           </div>
         </CardContent>
@@ -1102,18 +1137,29 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
           </div>
           <div>
             <Label>Country</Label>
-            <select
-              className="flex h-10 w-full rounded-xl border border-input bg-transparent px-3 py-1 text-sm disabled:opacity-50"
-              value={payee.country}
+            <Input
+              value={payee.country || ''}
               onChange={(e) => updateField('country', e.target.value)}
+              placeholder="e.g. US, CA, GB, DE"
               disabled={isReadOnly}
-            >
-              <option value="US">United States</option>
-              <option value="CA">Canada</option>
-            </select>
+            />
           </div>
         </CardContent>
       </Card>
+
+      {/* Intermediary Bank Warning */}
+      {payee.intermediary_bank_detected && !isFinalized && (
+        <Card className="rounded-2xl border-[#D97706] bg-[#FFFBEB] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+          <CardContent className="pt-5 pb-5">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-[#D97706] flex-shrink-0 mt-0.5" />
+              <p className="text-sm font-medium text-[#92400E]">
+                Intermediary bank details were detected on this invoice. This application does not support automatic verification of banking details with intermediary bank routing. You can still verify the payee manually.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Banking Details */}
       <Card className="rounded-2xl border-[#E8EAEC] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
@@ -1123,88 +1169,95 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
             {!isReadOnly && (
               <select
                 className="rounded-lg border border-input bg-transparent px-3 py-1.5 text-sm font-medium text-[#045B3F]"
-                value={payee.country}
+                value={payee.payment_rail || ''}
                 onChange={(e) => {
-                  updateField('country', e.target.value);
-                  // Clear banking fields when switching country
-                  if (e.target.value === 'US') {
-                    updateField('transit_number', null);
-                    updateField('institution_number', null);
-                  } else {
-                    updateField('aba_routing_number', null);
-                  }
+                  const rail = e.target.value as PaymentRail;
+                  updateField('payment_rail', rail || null);
+                  // Clear fields not relevant to the selected rail
+                  if (rail !== 'ach') updateField('aba_routing_number', null);
+                  if (rail !== 'eft') { updateField('transit_number', null); updateField('institution_number', null); }
+                  if (rail !== 'swift') updateField('swift_code', null);
+                  if (rail !== 'sepa') updateField('iban', null);
+                  if (rail !== 'bacs') updateField('sort_code', null);
+                  if (rail === 'sepa') updateField('account_number', null);
                 }}
               >
-                <option value="US">United States</option>
-                <option value="CA">Canada</option>
+                <option value="">Select payment rail...</option>
+                {Object.entries(PAYMENT_RAIL_CONFIG).map(([key, config]) => (
+                  <option key={key} value={key}>{config.label}</option>
+                ))}
               </select>
             )}
-            {isReadOnly && (
-              <span className="text-sm text-[#71717A]">{payee.country === 'CA' ? 'Canada' : 'United States'}</span>
+            {isReadOnly && payee.payment_rail && (
+              <span className="text-sm text-[#71717A]">{PAYMENT_RAIL_CONFIG[payee.payment_rail]?.label || payee.payment_rail}</span>
             )}
           </div>
         </CardHeader>
         <CardContent className="grid grid-cols-2 gap-4">
-          {payee.country === 'US' ? (
+          {payee.payment_rail === 'ach' && (
             <>
               <div>
                 <Label>ABA Routing Number</Label>
-                <Input
-                  value={payee.aba_routing_number || ''}
-                  onChange={(e) => updateField('aba_routing_number', e.target.value)}
-                  maxLength={9}
-                  placeholder="9 digits"
-                  disabled={isReadOnly}
-                />
+                <Input value={payee.aba_routing_number || ''} onChange={(e) => updateField('aba_routing_number', e.target.value)} maxLength={9} placeholder="9 digits" disabled={isReadOnly} />
               </div>
               <div>
                 <Label>Account Number</Label>
-                <Input
-                  value={payee.account_number || ''}
-                  onChange={(e) => updateField('account_number', e.target.value)}
-                  disabled={isReadOnly}
-                />
-              </div>
-            </>
-          ) : (
-            <>
-              <div>
-                <Label>Transit Number</Label>
-                <Input
-                  value={payee.transit_number || ''}
-                  onChange={(e) => updateField('transit_number', e.target.value)}
-                  maxLength={5}
-                  placeholder="5 digits"
-                  disabled={isReadOnly}
-                />
-              </div>
-              <div>
-                <Label>Institution Number</Label>
-                <Input
-                  value={payee.institution_number || ''}
-                  onChange={(e) => updateField('institution_number', e.target.value)}
-                  maxLength={3}
-                  placeholder="3 digits"
-                  disabled={isReadOnly}
-                />
-              </div>
-              <div>
-                <Label>Account Number</Label>
-                <Input
-                  value={payee.account_number || ''}
-                  onChange={(e) => updateField('account_number', e.target.value)}
-                  disabled={isReadOnly}
-                />
+                <Input value={payee.account_number || ''} onChange={(e) => updateField('account_number', e.target.value)} disabled={isReadOnly} />
               </div>
             </>
           )}
+          {payee.payment_rail === 'eft' && (
+            <>
+              <div>
+                <Label>Transit Number</Label>
+                <Input value={payee.transit_number || ''} onChange={(e) => updateField('transit_number', e.target.value)} maxLength={5} placeholder="5 digits" disabled={isReadOnly} />
+              </div>
+              <div>
+                <Label>Institution Number</Label>
+                <Input value={payee.institution_number || ''} onChange={(e) => updateField('institution_number', e.target.value)} maxLength={3} placeholder="3 digits" disabled={isReadOnly} />
+              </div>
+              <div>
+                <Label>Account Number</Label>
+                <Input value={payee.account_number || ''} onChange={(e) => updateField('account_number', e.target.value)} disabled={isReadOnly} />
+              </div>
+            </>
+          )}
+          {payee.payment_rail === 'swift' && (
+            <>
+              <div>
+                <Label>SWIFT / BIC Code</Label>
+                <Input value={payee.swift_code || ''} onChange={(e) => updateField('swift_code', e.target.value.toUpperCase())} maxLength={11} placeholder="8 or 11 characters" disabled={isReadOnly} />
+              </div>
+              <div>
+                <Label>Account Number</Label>
+                <Input value={payee.account_number || ''} onChange={(e) => updateField('account_number', e.target.value)} disabled={isReadOnly} />
+              </div>
+            </>
+          )}
+          {payee.payment_rail === 'sepa' && (
+            <div className="col-span-2">
+              <Label>IBAN</Label>
+              <Input value={payee.iban || ''} onChange={(e) => updateField('iban', e.target.value.toUpperCase().replace(/\s/g, ''))} maxLength={34} placeholder="e.g. DE89370400440532013000" disabled={isReadOnly} />
+            </div>
+          )}
+          {payee.payment_rail === 'bacs' && (
+            <>
+              <div>
+                <Label>Sort Code</Label>
+                <Input value={payee.sort_code || ''} onChange={(e) => updateField('sort_code', e.target.value)} maxLength={8} placeholder="e.g. 20-00-00" disabled={isReadOnly} />
+              </div>
+              <div>
+                <Label>Account Number</Label>
+                <Input value={payee.account_number || ''} onChange={(e) => updateField('account_number', e.target.value)} disabled={isReadOnly} />
+              </div>
+            </>
+          )}
+          {!payee.payment_rail && (
+            <p className="col-span-2 text-sm text-[#92979C]">Select a payment rail above to enter banking details.</p>
+          )}
           <div>
             <Label>Bank Name</Label>
-            <Input
-              value={payee.bank_name || ''}
-              onChange={(e) => updateField('bank_name', e.target.value)}
-              disabled={isReadOnly}
-            />
+            <Input value={payee.bank_name || ''} onChange={(e) => updateField('bank_name', e.target.value)} disabled={isReadOnly} />
           </div>
           <div>
             <Label>Account Type</Label>
@@ -1226,11 +1279,20 @@ export function ExtractedDataForm({ invoice, payee: initialPayee, verification: 
       {!isFinalized && (!isPendingReview || canRetry) && !isKnownPayeeMatch && (
         <>
           <Separator />
-          <div className="flex gap-3 justify-end">
+          <div className="flex gap-3 justify-end flex-wrap">
             <Button variant="outline" onClick={handleSave} disabled={saving || sending} className="rounded-xl gap-2">
               {saving && <Loader2 className="h-4 w-4 animate-spin" />}
               <Save className="h-4 w-4" />
               Save
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleManualVerify}
+              disabled={saving || sending || calling || invoiceStatus === 'pending_review'}
+              className="rounded-xl gap-2"
+            >
+              <ShieldCheck className="h-4 w-4" />
+              Mark as Manually Verified
             </Button>
             <Button
               onClick={handleSaveAndSend}

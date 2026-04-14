@@ -17,11 +17,8 @@ interface VerificationSmsParams {
 }
 
 export async function sendVerificationSms(params: VerificationSmsParams) {
-  const formattedAmount = (params.currency === 'USD' ? 'US' : 'CA') + new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: params.currency,
-    currencyDisplay: 'narrowSymbol',
-  }).format(params.invoiceAmount);
+  const { formatCurrency } = await import('@/lib/utils');
+  const formattedAmount = formatCurrency(params.invoiceAmount, params.currency);
 
   const message = `${params.senderFirstName} at ${params.senderCompany} is requesting that you verify an invoice for ${params.payeeCompany} for ${formattedAmount}. Please review and confirm here: ${params.verifyUrl}`;
 

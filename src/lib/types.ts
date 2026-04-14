@@ -1,6 +1,23 @@
 export type InvoiceStatus = 'uploaded' | 'parsing' | 'parsed' | 'verification_sent' | 'pending_review' | 'verified' | 'denied' | 'failed';
 export type VerificationStatus = 'pending' | 'sent' | 'opened' | 'confirmed' | 'denied' | 'expired' | 'failed';
-export type Country = 'US' | 'CA';
+export type Country = 'US' | 'CA'; // kept for backward compat
+export type PaymentRail = 'ach' | 'eft' | 'swift' | 'sepa' | 'bacs';
+export type Currency = 'USD' | 'CAD' | 'EUR' | 'GBP';
+
+export const PAYMENT_RAIL_CONFIG: Record<PaymentRail, { label: string; requiredFields: string[] }> = {
+  ach: { label: 'ACH (US Domestic)', requiredFields: ['aba_routing_number', 'account_number'] },
+  eft: { label: 'Canadian EFT', requiredFields: ['transit_number', 'institution_number', 'account_number'] },
+  swift: { label: 'SWIFT Wire', requiredFields: ['swift_code', 'account_number'] },
+  sepa: { label: 'SEPA / IBAN', requiredFields: ['iban'] },
+  bacs: { label: 'UK BACS', requiredFields: ['sort_code', 'account_number'] },
+};
+
+export const CURRENCY_CONFIG: Record<Currency, { prefix: string; narrowSymbol: boolean }> = {
+  USD: { prefix: 'US', narrowSymbol: true },
+  CAD: { prefix: 'CA', narrowSymbol: true },
+  EUR: { prefix: '', narrowSymbol: true },
+  GBP: { prefix: '', narrowSymbol: true },
+};
 
 export interface Invoice {
   id: string;
@@ -26,18 +43,23 @@ export interface Payee {
   city: string | null;
   state_province: string | null;
   postal_code: string | null;
-  country: Country;
+  country: string;
+  payment_rail: PaymentRail | null;
   aba_routing_number: string | null;
   account_number: string | null;
   transit_number: string | null;
   institution_number: string | null;
+  swift_code: string | null;
+  iban: string | null;
+  sort_code: string | null;
   bank_name: string | null;
   account_type: 'checking' | 'savings' | null;
   invoice_number: string | null;
   invoice_amount: number | null;
   invoice_date: string | null;
   due_date: string | null;
-  currency: 'USD' | 'CAD';
+  currency: Currency;
+  intermediary_bank_detected: boolean;
   known_payee_id: string | null;
   match_result: MatchResult | null;
   created_at: string;
@@ -72,14 +94,18 @@ export interface KnownPayeeAlias {
 export interface KnownPayeeBankingDetails {
   id: string;
   known_payee_id: string;
-  country: Country;
+  country: string;
+  payment_rail: PaymentRail | null;
   aba_routing_number: string | null;
   account_number: string | null;
   transit_number: string | null;
   institution_number: string | null;
+  swift_code: string | null;
+  iban: string | null;
+  sort_code: string | null;
   bank_name: string | null;
   account_type: 'checking' | 'savings' | null;
-  currency: 'USD' | 'CAD';
+  currency: Currency;
   created_at: string;
 }
 
@@ -98,7 +124,7 @@ export interface Verification {
 }
 
 export interface ParsedInvoiceData {
-  payee: Omit<Payee, 'id' | 'invoice_id' | 'created_at' | 'updated_at'>;
+  payee: Omit<Payee, 'id' | 'invoice_id' | 'created_at' | 'updated_at' | 'known_payee_id' | 'match_result'>;
   confidence: number;
   raw_text_excerpt: string;
 }

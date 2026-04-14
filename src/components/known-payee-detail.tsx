@@ -19,7 +19,8 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { ArrowLeft, Save, Trash2, Plus, X, Loader2, FileText } from 'lucide-react';
-import type { KnownPayee, KnownPayeeAlias, KnownPayeeBankingDetails } from '@/lib/types';
+import type { KnownPayee, KnownPayeeAlias, KnownPayeeBankingDetails, PaymentRail } from '@/lib/types';
+import { PAYMENT_RAIL_CONFIG } from '@/lib/types';
 
 interface LinkedInvoice {
   id: string;
@@ -63,12 +64,15 @@ export function KnownPayeeDetail({ knownPayee, aliases: initialAliases, bankingD
 
   // Add banking form state
   const [showBankingForm, setShowBankingForm] = useState(false);
-  const [bankingCountry, setBankingCountry] = useState<'US' | 'CA'>('US');
+  const [bankingPaymentRail, setBankingPaymentRail] = useState<PaymentRail>('ach');
   const [bankingForm, setBankingForm] = useState({
     aba_routing_number: '',
     account_number: '',
     transit_number: '',
     institution_number: '',
+    swift_code: '',
+    iban: '',
+    sort_code: '',
     bank_name: '',
     account_type: '',
     currency: 'USD',
@@ -141,16 +145,15 @@ export function KnownPayeeDetail({ knownPayee, aliases: initialAliases, bankingD
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          country: bankingCountry,
+          payment_rail: bankingPaymentRail,
           ...bankingForm,
-          currency: bankingCountry === 'CA' ? 'CAD' : 'USD',
         }),
       });
       if (!res.ok) throw new Error();
       const { banking } = await res.json();
       setBankingDetails(prev => [...prev, banking]);
       setShowBankingForm(false);
-      setBankingForm({ aba_routing_number: '', account_number: '', transit_number: '', institution_number: '', bank_name: '', account_type: '', currency: 'USD' });
+      setBankingForm({ aba_routing_number: '', account_number: '', transit_number: '', institution_number: '', swift_code: '', iban: '', sort_code: '', bank_name: '', account_type: '', currency: 'USD' });
       toast.success('Banking details added');
     } catch {
       toast.error('Failed to add banking details');
@@ -298,16 +301,17 @@ export function KnownPayeeDetail({ knownPayee, aliases: initialAliases, bankingD
             <div key={bd.id} className="flex items-center justify-between p-4 rounded-xl bg-[#FAFAFA] border border-[#E8EAEC]">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-xs">{bd.country}</Badge>
+                  {bd.payment_rail && <Badge variant="outline" className="text-xs">{PAYMENT_RAIL_CONFIG[bd.payment_rail]?.label || bd.payment_rail}</Badge>}
                   <Badge variant="outline" className="text-xs">{bd.currency}</Badge>
                   {bd.bank_name && <span className="text-sm text-[#383B3E] font-medium">{bd.bank_name}</span>}
                 </div>
                 <div className="text-sm text-[#71717A]">
-                  {bd.country === 'US' ? (
-                    <>Routing: {bd.aba_routing_number || '—'} / Account: {maskAccountNumber(bd.account_number)}</>
-                  ) : (
-                    <>Transit: {bd.transit_number || '—'} / Inst: {bd.institution_number || '—'} / Account: {maskAccountNumber(bd.account_number)}</>
-                  )}
+                  {bd.payment_rail === 'ach' && <>Routing: {bd.aba_routing_number || '—'} / Account: {maskAccountNumber(bd.account_number)}</>}
+                  {bd.payment_rail === 'eft' && <>Transit: {bd.transit_number || '—'} / Inst: {bd.institution_number || '—'} / Account: {maskAccountNumber(bd.account_number)}</>}
+                  {bd.payment_rail === 'swift' && <>SWIFT: {bd.swift_code || '—'} / Account: {maskAccountNumber(bd.account_number)}</>}
+                  {bd.payment_rail === 'sepa' && <>IBAN: {maskAccountNumber(bd.iban)}</>}
+                  {bd.payment_rail === 'bacs' && <>Sort: {bd.sort_code || '—'} / Account: {maskAccountNumber(bd.account_number)}</>}
+                  {!bd.payment_rail && <>Account: {maskAccountNumber(bd.account_number)}</>}
                   {bd.account_type && <> / {bd.account_type}</>}
                 </div>
               </div>
@@ -332,79 +336,54 @@ export function KnownPayeeDetail({ knownPayee, aliases: initialAliases, bankingD
                 <p className="text-sm font-medium text-[#045B3F]">Add Banking Details</p>
                 <select
                   className="rounded-lg border border-input bg-transparent px-3 py-1.5 text-sm"
-                  value={bankingCountry}
-                  onChange={(e) => setBankingCountry(e.target.value as 'US' | 'CA')}
+                  value={bankingPaymentRail}
+                  onChange={(e) => setBankingPaymentRail(e.target.value as PaymentRail)}
                 >
-                  <option value="US">United States</option>
-                  <option value="CA">Canada</option>
+                  {Object.entries(PAYMENT_RAIL_CONFIG).map(([key, config]) => (
+                    <option key={key} value={key}>{config.label}</option>
+                  ))}
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                {bankingCountry === 'US' ? (
+                {bankingPaymentRail === 'ach' && (
                   <>
-                    <div>
-                      <Label className="text-xs">ABA Routing Number</Label>
-                      <Input
-                        value={bankingForm.aba_routing_number}
-                        onChange={(e) => setBankingForm(p => ({ ...p, aba_routing_number: e.target.value }))}
-                        maxLength={9}
-                        placeholder="9 digits"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs">Account Number</Label>
-                      <Input
-                        value={bankingForm.account_number}
-                        onChange={(e) => setBankingForm(p => ({ ...p, account_number: e.target.value }))}
-                      />
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div>
-                      <Label className="text-xs">Transit Number</Label>
-                      <Input
-                        value={bankingForm.transit_number}
-                        onChange={(e) => setBankingForm(p => ({ ...p, transit_number: e.target.value }))}
-                        maxLength={5}
-                        placeholder="5 digits"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs">Institution Number</Label>
-                      <Input
-                        value={bankingForm.institution_number}
-                        onChange={(e) => setBankingForm(p => ({ ...p, institution_number: e.target.value }))}
-                        maxLength={3}
-                        placeholder="3 digits"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs">Account Number</Label>
-                      <Input
-                        value={bankingForm.account_number}
-                        onChange={(e) => setBankingForm(p => ({ ...p, account_number: e.target.value }))}
-                      />
-                    </div>
+                    <div><Label className="text-xs">ABA Routing Number</Label><Input value={bankingForm.aba_routing_number} onChange={(e) => setBankingForm(p => ({ ...p, aba_routing_number: e.target.value }))} maxLength={9} placeholder="9 digits" /></div>
+                    <div><Label className="text-xs">Account Number</Label><Input value={bankingForm.account_number} onChange={(e) => setBankingForm(p => ({ ...p, account_number: e.target.value }))} /></div>
                   </>
                 )}
+                {bankingPaymentRail === 'eft' && (
+                  <>
+                    <div><Label className="text-xs">Transit Number</Label><Input value={bankingForm.transit_number} onChange={(e) => setBankingForm(p => ({ ...p, transit_number: e.target.value }))} maxLength={5} placeholder="5 digits" /></div>
+                    <div><Label className="text-xs">Institution Number</Label><Input value={bankingForm.institution_number} onChange={(e) => setBankingForm(p => ({ ...p, institution_number: e.target.value }))} maxLength={3} placeholder="3 digits" /></div>
+                    <div><Label className="text-xs">Account Number</Label><Input value={bankingForm.account_number} onChange={(e) => setBankingForm(p => ({ ...p, account_number: e.target.value }))} /></div>
+                  </>
+                )}
+                {bankingPaymentRail === 'swift' && (
+                  <>
+                    <div><Label className="text-xs">SWIFT / BIC Code</Label><Input value={bankingForm.swift_code} onChange={(e) => setBankingForm(p => ({ ...p, swift_code: e.target.value.toUpperCase() }))} maxLength={11} placeholder="8 or 11 chars" /></div>
+                    <div><Label className="text-xs">Account Number</Label><Input value={bankingForm.account_number} onChange={(e) => setBankingForm(p => ({ ...p, account_number: e.target.value }))} /></div>
+                  </>
+                )}
+                {bankingPaymentRail === 'sepa' && (
+                  <div className="col-span-2"><Label className="text-xs">IBAN</Label><Input value={bankingForm.iban} onChange={(e) => setBankingForm(p => ({ ...p, iban: e.target.value.toUpperCase().replace(/\s/g, '') }))} maxLength={34} placeholder="e.g. DE89370400440532013000" /></div>
+                )}
+                {bankingPaymentRail === 'bacs' && (
+                  <>
+                    <div><Label className="text-xs">Sort Code</Label><Input value={bankingForm.sort_code} onChange={(e) => setBankingForm(p => ({ ...p, sort_code: e.target.value }))} maxLength={8} placeholder="e.g. 20-00-00" /></div>
+                    <div><Label className="text-xs">Account Number</Label><Input value={bankingForm.account_number} onChange={(e) => setBankingForm(p => ({ ...p, account_number: e.target.value }))} /></div>
+                  </>
+                )}
+                <div><Label className="text-xs">Bank Name</Label><Input value={bankingForm.bank_name} onChange={(e) => setBankingForm(p => ({ ...p, bank_name: e.target.value }))} /></div>
                 <div>
-                  <Label className="text-xs">Bank Name</Label>
-                  <Input
-                    value={bankingForm.bank_name}
-                    onChange={(e) => setBankingForm(p => ({ ...p, bank_name: e.target.value }))}
-                  />
+                  <Label className="text-xs">Currency</Label>
+                  <select className="flex h-10 w-full rounded-xl border border-input bg-transparent px-3 py-1 text-sm" value={bankingForm.currency} onChange={(e) => setBankingForm(p => ({ ...p, currency: e.target.value }))}>
+                    <option value="USD">USD</option><option value="CAD">CAD</option><option value="EUR">EUR</option><option value="GBP">GBP</option>
+                  </select>
                 </div>
                 <div>
                   <Label className="text-xs">Account Type</Label>
-                  <select
-                    className="flex h-10 w-full rounded-xl border border-input bg-transparent px-3 py-1 text-sm"
-                    value={bankingForm.account_type}
-                    onChange={(e) => setBankingForm(p => ({ ...p, account_type: e.target.value }))}
-                  >
-                    <option value="">Not specified</option>
-                    <option value="checking">Checking</option>
-                    <option value="savings">Savings</option>
+                  <select className="flex h-10 w-full rounded-xl border border-input bg-transparent px-3 py-1 text-sm" value={bankingForm.account_type} onChange={(e) => setBankingForm(p => ({ ...p, account_type: e.target.value }))}>
+                    <option value="">Not specified</option><option value="checking">Checking</option><option value="savings">Savings</option>
                   </select>
                 </div>
               </div>

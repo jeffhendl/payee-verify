@@ -20,7 +20,11 @@ interface VerificationResponseFormProps {
     account_number: string | null;
     transit_number: string | null;
     institution_number: string | null;
+    swift_code: string | null;
+    iban: string | null;
+    sort_code: string | null;
     country: string;
+    payment_rail: string | null;
   };
   bankingMissing: boolean;
 }
@@ -35,28 +39,27 @@ interface BankingErrors {
   institutionNumber?: string;
   accountNumber?: string;
   abaRouting?: string;
+  swiftCode?: string;
+  iban?: string;
+  sortCode?: string;
 }
 
-function validateBanking(country: string, fields: { transitNumber: string; institutionNumber: string; accountNumber: string; abaRouting: string }): BankingErrors {
+function validateBanking(rail: string, fields: { transitNumber: string; institutionNumber: string; accountNumber: string; abaRouting: string; swiftCode: string; iban: string; sortCode: string }): BankingErrors {
   const errors: BankingErrors = {};
 
-  if (country === 'US') {
-    if (fields.abaRouting && !/^\d{9}$/.test(fields.abaRouting)) {
-      errors.abaRouting = 'Routing number must be exactly 9 digits';
-    }
-    if (fields.accountNumber && !/^\d{7,12}$/.test(fields.accountNumber)) {
-      errors.accountNumber = 'Account number must be 7–12 digits';
-    }
-  } else {
-    if (fields.transitNumber && !/^\d{5}$/.test(fields.transitNumber)) {
-      errors.transitNumber = 'Transit number must be exactly 5 digits';
-    }
-    if (fields.institutionNumber && !/^\d{3}$/.test(fields.institutionNumber)) {
-      errors.institutionNumber = 'Institution number must be exactly 3 digits';
-    }
-    if (fields.accountNumber && !/^\d{7,12}$/.test(fields.accountNumber)) {
-      errors.accountNumber = 'Account number must be 7–12 digits';
-    }
+  if (rail === 'ach') {
+    if (fields.abaRouting && !/^\d{9}$/.test(fields.abaRouting)) errors.abaRouting = 'Routing number must be exactly 9 digits';
+    if (fields.accountNumber && !/^\d{7,12}$/.test(fields.accountNumber)) errors.accountNumber = 'Account number must be 7–12 digits';
+  } else if (rail === 'eft') {
+    if (fields.transitNumber && !/^\d{5}$/.test(fields.transitNumber)) errors.transitNumber = 'Transit number must be exactly 5 digits';
+    if (fields.institutionNumber && !/^\d{3}$/.test(fields.institutionNumber)) errors.institutionNumber = 'Institution number must be exactly 3 digits';
+    if (fields.accountNumber && !/^\d{7,12}$/.test(fields.accountNumber)) errors.accountNumber = 'Account number must be 7–12 digits';
+  } else if (rail === 'swift') {
+    if (fields.swiftCode && !/^[A-Z0-9]{8,11}$/i.test(fields.swiftCode)) errors.swiftCode = 'SWIFT code must be 8 or 11 alphanumeric characters';
+  } else if (rail === 'sepa') {
+    if (fields.iban && !/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/i.test(fields.iban.replace(/\s/g, ''))) errors.iban = 'Invalid IBAN format';
+  } else if (rail === 'bacs') {
+    if (fields.sortCode && !/^\d{6}$/.test(fields.sortCode.replace(/-/g, ''))) errors.sortCode = 'Sort code must be 6 digits';
   }
 
   return errors;
@@ -76,12 +79,18 @@ export function VerificationResponseForm({ token, payee, bankingMissing }: Verif
   const [abaRouting, setAbaRouting] = useState('');
   const [transitNumber, setTransitNumber] = useState('');
   const [institutionNumber, setInstitutionNumber] = useState('');
+  const [swiftCode, setSwiftCode] = useState('');
+  const [iban, setIban] = useState('');
+  const [sortCode, setSortCode] = useState('');
+  const [selectedRail, setSelectedRail] = useState(payee.payment_rail || '');
   const [accountType, setAccountType] = useState('');
   const [bankingErrors, setBankingErrors] = useState<BankingErrors>({});
 
-  const formattedAmount = payee.invoice_amount
-    ? (payee.currency === 'USD' ? 'US' : 'CA') + new Intl.NumberFormat('en-US', { style: 'currency', currency: payee.currency, currencyDisplay: 'narrowSymbol' }).format(payee.invoice_amount)
-    : 'N/A';
+  const formattedAmount = (() => {
+    if (!payee.invoice_amount) return 'N/A';
+    const prefix = payee.currency === 'USD' ? 'US' : payee.currency === 'CAD' ? 'CA' : '';
+    return prefix + new Intl.NumberFormat('en-US', { style: 'currency', currency: payee.currency, currencyDisplay: 'narrowSymbol' }).format(payee.invoice_amount);
+  })();
 
   const handleSubmit = async (confirmed: boolean) => {
     if (!respondentName || !respondentRole) {
@@ -89,24 +98,27 @@ export function VerificationResponseForm({ token, payee, bankingMissing }: Verif
       return;
     }
 
-    // If confirming and banking is missing, validate all required banking fields
+    // If confirming and banking is missing, validate required banking fields based on rail
     if (confirmed && bankingMissing) {
-      const missingFields: string[] = [];
-      if (payee.country === 'US') {
-        if (!abaRouting) missingFields.push('ABA Routing Number');
-        if (!accountNumber) missingFields.push('Account Number');
-      } else {
-        if (!transitNumber) missingFields.push('Transit Number');
-        if (!institutionNumber) missingFields.push('Institution Number');
-        if (!accountNumber) missingFields.push('Account Number');
+      const rail = selectedRail;
+      if (!rail) {
+        setError('Please select a payment rail type');
+        return;
       }
+
+      const missingFields: string[] = [];
+      if (rail === 'ach') { if (!abaRouting) missingFields.push('ABA Routing Number'); if (!accountNumber) missingFields.push('Account Number'); }
+      else if (rail === 'eft') { if (!transitNumber) missingFields.push('Transit Number'); if (!institutionNumber) missingFields.push('Institution Number'); if (!accountNumber) missingFields.push('Account Number'); }
+      else if (rail === 'swift') { if (!swiftCode) missingFields.push('SWIFT/BIC Code'); if (!accountNumber) missingFields.push('Account Number'); }
+      else if (rail === 'sepa') { if (!iban) missingFields.push('IBAN'); }
+      else if (rail === 'bacs') { if (!sortCode) missingFields.push('Sort Code'); if (!accountNumber) missingFields.push('Account Number'); }
 
       if (missingFields.length > 0) {
         setError(`Please provide: ${missingFields.join(', ')}`);
         return;
       }
 
-      const validationErrors = validateBanking(payee.country, { transitNumber, institutionNumber, accountNumber, abaRouting });
+      const validationErrors = validateBanking(rail, { transitNumber, institutionNumber, accountNumber, abaRouting, swiftCode, iban, sortCode });
       if (Object.keys(validationErrors).length > 0) {
         setBankingErrors(validationErrors);
         setError('Please fix the banking detail errors before submitting');
@@ -119,11 +131,15 @@ export function VerificationResponseForm({ token, payee, bankingMissing }: Verif
     setBankingErrors({});
 
     const bankingDetails = bankingMissing && confirmed ? {
+      payment_rail: selectedRail || null,
       bank_name: bankName || null,
       account_number: accountNumber || null,
-      aba_routing_number: payee.country === 'US' ? (abaRouting || null) : null,
-      transit_number: payee.country === 'CA' ? (transitNumber || null) : null,
-      institution_number: payee.country === 'CA' ? (institutionNumber || null) : null,
+      aba_routing_number: selectedRail === 'ach' ? (abaRouting || null) : null,
+      transit_number: selectedRail === 'eft' ? (transitNumber || null) : null,
+      institution_number: selectedRail === 'eft' ? (institutionNumber || null) : null,
+      swift_code: selectedRail === 'swift' ? (swiftCode || null) : null,
+      iban: selectedRail === 'sepa' ? (iban || null) : null,
+      sort_code: selectedRail === 'bacs' ? (sortCode || null) : null,
       account_type: accountType || null,
     } : undefined;
 
@@ -188,37 +204,53 @@ export function VerificationResponseForm({ token, payee, bankingMissing }: Verif
           </div>
           {!bankingMissing && (
             <>
-              <div className="flex justify-between">
-                <span className="text-[#92979C]">Bank Name</span>
-                <span className="font-medium">{payee.bank_name || 'N/A'}</span>
-              </div>
-              {payee.country === 'US' && (
-                <>
-                  <div className="flex justify-between">
-                    <span className="text-[#92979C]">Routing Number</span>
-                    <span className="font-mono">{maskValue(payee.aba_routing_number)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#92979C]">Account Number</span>
-                    <span className="font-mono">{maskValue(payee.account_number)}</span>
-                  </div>
-                </>
+              {payee.bank_name && (
+                <div className="flex justify-between">
+                  <span className="text-[#92979C]">Bank Name</span>
+                  <span className="font-medium">{payee.bank_name}</span>
+                </div>
               )}
-              {payee.country === 'CA' && (
-                <>
-                  <div className="flex justify-between">
-                    <span className="text-[#92979C]">Transit Number</span>
-                    <span className="font-mono">{maskValue(payee.transit_number)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#92979C]">Institution Number</span>
-                    <span className="font-mono">{maskValue(payee.institution_number)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#92979C]">Account Number</span>
-                    <span className="font-mono">{maskValue(payee.account_number)}</span>
-                  </div>
-                </>
+              {payee.aba_routing_number && (
+                <div className="flex justify-between">
+                  <span className="text-[#92979C]">Routing Number</span>
+                  <span className="font-mono">{maskValue(payee.aba_routing_number)}</span>
+                </div>
+              )}
+              {payee.transit_number && (
+                <div className="flex justify-between">
+                  <span className="text-[#92979C]">Transit Number</span>
+                  <span className="font-mono">{maskValue(payee.transit_number)}</span>
+                </div>
+              )}
+              {payee.institution_number && (
+                <div className="flex justify-between">
+                  <span className="text-[#92979C]">Institution Number</span>
+                  <span className="font-mono">{maskValue(payee.institution_number)}</span>
+                </div>
+              )}
+              {payee.swift_code && (
+                <div className="flex justify-between">
+                  <span className="text-[#92979C]">SWIFT/BIC</span>
+                  <span className="font-mono">{payee.swift_code}</span>
+                </div>
+              )}
+              {payee.iban && (
+                <div className="flex justify-between">
+                  <span className="text-[#92979C]">IBAN</span>
+                  <span className="font-mono">{maskValue(payee.iban)}</span>
+                </div>
+              )}
+              {payee.sort_code && (
+                <div className="flex justify-between">
+                  <span className="text-[#92979C]">Sort Code</span>
+                  <span className="font-mono">{payee.sort_code}</span>
+                </div>
+              )}
+              {payee.account_number && (
+                <div className="flex justify-between">
+                  <span className="text-[#92979C]">Account Number</span>
+                  <span className="font-mono">{maskValue(payee.account_number)}</span>
+                </div>
               )}
             </>
           )}
@@ -239,123 +271,83 @@ export function VerificationResponseForm({ token, payee, bankingMissing }: Verif
           </CardHeader>
           <CardContent className="space-y-3">
             <div>
-              <Label className="text-[#383B3E]">Bank Name</Label>
-              <Input
-                value={bankName}
-                onChange={(e) => setBankName(e.target.value)}
-                placeholder="e.g. Chase, TD Bank, RBC"
-                className="rounded-xl h-11 bg-white"
-              />
+              <Label className="text-[#383B3E]">Payment Type</Label>
+              <select className="flex h-11 w-full rounded-xl border border-input bg-white px-3 py-1 text-sm" value={selectedRail} onChange={(e) => setSelectedRail(e.target.value)}>
+                <option value="">Select payment type...</option>
+                <option value="ach">ACH (US Domestic)</option>
+                <option value="eft">Canadian EFT</option>
+                <option value="swift">SWIFT Wire</option>
+                <option value="sepa">SEPA / IBAN</option>
+                <option value="bacs">UK BACS</option>
+              </select>
             </div>
-            {payee.country === 'US' ? (
+            <div>
+              <Label className="text-[#383B3E]">Bank Name</Label>
+              <Input value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder="e.g. Chase, TD Bank, Barclays" className="rounded-xl h-11 bg-white" />
+            </div>
+            {selectedRail === 'ach' && (
               <>
                 <div>
                   <Label className="text-[#383B3E]">ABA Routing Number</Label>
-                  <Input
-                    value={abaRouting}
-                    onChange={(e) => {
-                      const v = e.target.value.replace(/\D/g, '').slice(0, 9);
-                      setAbaRouting(v);
-                      if (bankingErrors.abaRouting) setBankingErrors(prev => ({ ...prev, abaRouting: undefined }));
-                    }}
-                    placeholder="9 digits"
-                    maxLength={9}
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    className={`rounded-xl h-11 bg-white ${bankingErrors.abaRouting ? 'border-[#F12D1B]' : ''}`}
-                  />
-                  {bankingErrors.abaRouting && (
-                    <p className="text-xs text-[#F12D1B] mt-1 flex items-center gap-1">
-                      <AlertTriangle className="h-3 w-3" /> {bankingErrors.abaRouting}
-                    </p>
-                  )}
+                  <Input value={abaRouting} onChange={(e) => { setAbaRouting(e.target.value.replace(/\D/g, '').slice(0, 9)); if (bankingErrors.abaRouting) setBankingErrors(prev => ({ ...prev, abaRouting: undefined })); }} placeholder="9 digits" maxLength={9} inputMode="numeric" className={`rounded-xl h-11 bg-white ${bankingErrors.abaRouting ? 'border-[#F12D1B]' : ''}`} />
+                  {bankingErrors.abaRouting && <p className="text-xs text-[#F12D1B] mt-1 flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> {bankingErrors.abaRouting}</p>}
                 </div>
                 <div>
                   <Label className="text-[#383B3E]">Account Number</Label>
-                  <Input
-                    value={accountNumber}
-                    onChange={(e) => {
-                      const v = e.target.value.replace(/\D/g, '').slice(0, 12);
-                      setAccountNumber(v);
-                      if (bankingErrors.accountNumber) setBankingErrors(prev => ({ ...prev, accountNumber: undefined }));
-                    }}
-                    placeholder="7–12 digits"
-                    maxLength={12}
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    className={`rounded-xl h-11 bg-white ${bankingErrors.accountNumber ? 'border-[#F12D1B]' : ''}`}
-                  />
-                  {bankingErrors.accountNumber && (
-                    <p className="text-xs text-[#F12D1B] mt-1 flex items-center gap-1">
-                      <AlertTriangle className="h-3 w-3" /> {bankingErrors.accountNumber}
-                    </p>
-                  )}
+                  <Input value={accountNumber} onChange={(e) => { setAccountNumber(e.target.value.replace(/\D/g, '').slice(0, 12)); if (bankingErrors.accountNumber) setBankingErrors(prev => ({ ...prev, accountNumber: undefined })); }} placeholder="7–12 digits" maxLength={12} inputMode="numeric" className={`rounded-xl h-11 bg-white ${bankingErrors.accountNumber ? 'border-[#F12D1B]' : ''}`} />
+                  {bankingErrors.accountNumber && <p className="text-xs text-[#F12D1B] mt-1 flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> {bankingErrors.accountNumber}</p>}
                 </div>
               </>
-            ) : (
+            )}
+            {selectedRail === 'eft' && (
               <>
                 <div>
                   <Label className="text-[#383B3E]">Transit Number</Label>
-                  <Input
-                    value={transitNumber}
-                    onChange={(e) => {
-                      const v = e.target.value.replace(/\D/g, '').slice(0, 5);
-                      setTransitNumber(v);
-                      if (bankingErrors.transitNumber) setBankingErrors(prev => ({ ...prev, transitNumber: undefined }));
-                    }}
-                    placeholder="5 digits"
-                    maxLength={5}
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    className={`rounded-xl h-11 bg-white ${bankingErrors.transitNumber ? 'border-[#F12D1B]' : ''}`}
-                  />
-                  {bankingErrors.transitNumber && (
-                    <p className="text-xs text-[#F12D1B] mt-1 flex items-center gap-1">
-                      <AlertTriangle className="h-3 w-3" /> {bankingErrors.transitNumber}
-                    </p>
-                  )}
+                  <Input value={transitNumber} onChange={(e) => { setTransitNumber(e.target.value.replace(/\D/g, '').slice(0, 5)); if (bankingErrors.transitNumber) setBankingErrors(prev => ({ ...prev, transitNumber: undefined })); }} placeholder="5 digits" maxLength={5} inputMode="numeric" className={`rounded-xl h-11 bg-white ${bankingErrors.transitNumber ? 'border-[#F12D1B]' : ''}`} />
+                  {bankingErrors.transitNumber && <p className="text-xs text-[#F12D1B] mt-1 flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> {bankingErrors.transitNumber}</p>}
                 </div>
                 <div>
                   <Label className="text-[#383B3E]">Institution Number</Label>
-                  <Input
-                    value={institutionNumber}
-                    onChange={(e) => {
-                      const v = e.target.value.replace(/\D/g, '').slice(0, 3);
-                      setInstitutionNumber(v);
-                      if (bankingErrors.institutionNumber) setBankingErrors(prev => ({ ...prev, institutionNumber: undefined }));
-                    }}
-                    placeholder="3 digits"
-                    maxLength={3}
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    className={`rounded-xl h-11 bg-white ${bankingErrors.institutionNumber ? 'border-[#F12D1B]' : ''}`}
-                  />
-                  {bankingErrors.institutionNumber && (
-                    <p className="text-xs text-[#F12D1B] mt-1 flex items-center gap-1">
-                      <AlertTriangle className="h-3 w-3" /> {bankingErrors.institutionNumber}
-                    </p>
-                  )}
+                  <Input value={institutionNumber} onChange={(e) => { setInstitutionNumber(e.target.value.replace(/\D/g, '').slice(0, 3)); if (bankingErrors.institutionNumber) setBankingErrors(prev => ({ ...prev, institutionNumber: undefined })); }} placeholder="3 digits" maxLength={3} inputMode="numeric" className={`rounded-xl h-11 bg-white ${bankingErrors.institutionNumber ? 'border-[#F12D1B]' : ''}`} />
+                  {bankingErrors.institutionNumber && <p className="text-xs text-[#F12D1B] mt-1 flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> {bankingErrors.institutionNumber}</p>}
                 </div>
                 <div>
                   <Label className="text-[#383B3E]">Account Number</Label>
-                  <Input
-                    value={accountNumber}
-                    onChange={(e) => {
-                      const v = e.target.value.replace(/\D/g, '').slice(0, 12);
-                      setAccountNumber(v);
-                      if (bankingErrors.accountNumber) setBankingErrors(prev => ({ ...prev, accountNumber: undefined }));
-                    }}
-                    placeholder="7–12 digits"
-                    maxLength={12}
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    className={`rounded-xl h-11 bg-white ${bankingErrors.accountNumber ? 'border-[#F12D1B]' : ''}`}
-                  />
-                  {bankingErrors.accountNumber && (
-                    <p className="text-xs text-[#F12D1B] mt-1 flex items-center gap-1">
-                      <AlertTriangle className="h-3 w-3" /> {bankingErrors.accountNumber}
-                    </p>
-                  )}
+                  <Input value={accountNumber} onChange={(e) => { setAccountNumber(e.target.value.replace(/\D/g, '').slice(0, 12)); if (bankingErrors.accountNumber) setBankingErrors(prev => ({ ...prev, accountNumber: undefined })); }} placeholder="7–12 digits" maxLength={12} inputMode="numeric" className={`rounded-xl h-11 bg-white ${bankingErrors.accountNumber ? 'border-[#F12D1B]' : ''}`} />
+                  {bankingErrors.accountNumber && <p className="text-xs text-[#F12D1B] mt-1 flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> {bankingErrors.accountNumber}</p>}
+                </div>
+              </>
+            )}
+            {selectedRail === 'swift' && (
+              <>
+                <div>
+                  <Label className="text-[#383B3E]">SWIFT / BIC Code</Label>
+                  <Input value={swiftCode} onChange={(e) => { setSwiftCode(e.target.value.toUpperCase().slice(0, 11)); if (bankingErrors.swiftCode) setBankingErrors(prev => ({ ...prev, swiftCode: undefined })); }} placeholder="8 or 11 characters" maxLength={11} className={`rounded-xl h-11 bg-white ${bankingErrors.swiftCode ? 'border-[#F12D1B]' : ''}`} />
+                  {bankingErrors.swiftCode && <p className="text-xs text-[#F12D1B] mt-1 flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> {bankingErrors.swiftCode}</p>}
+                </div>
+                <div>
+                  <Label className="text-[#383B3E]">Account Number</Label>
+                  <Input value={accountNumber} onChange={(e) => setAccountNumber(e.target.value)} className="rounded-xl h-11 bg-white" />
+                </div>
+              </>
+            )}
+            {selectedRail === 'sepa' && (
+              <div>
+                <Label className="text-[#383B3E]">IBAN</Label>
+                <Input value={iban} onChange={(e) => { setIban(e.target.value.toUpperCase().replace(/\s/g, '')); if (bankingErrors.iban) setBankingErrors(prev => ({ ...prev, iban: undefined })); }} placeholder="e.g. DE89370400440532013000" maxLength={34} className={`rounded-xl h-11 bg-white ${bankingErrors.iban ? 'border-[#F12D1B]' : ''}`} />
+                {bankingErrors.iban && <p className="text-xs text-[#F12D1B] mt-1 flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> {bankingErrors.iban}</p>}
+              </div>
+            )}
+            {selectedRail === 'bacs' && (
+              <>
+                <div>
+                  <Label className="text-[#383B3E]">Sort Code</Label>
+                  <Input value={sortCode} onChange={(e) => { setSortCode(e.target.value.slice(0, 8)); if (bankingErrors.sortCode) setBankingErrors(prev => ({ ...prev, sortCode: undefined })); }} placeholder="e.g. 20-00-00" maxLength={8} className={`rounded-xl h-11 bg-white ${bankingErrors.sortCode ? 'border-[#F12D1B]' : ''}`} />
+                  {bankingErrors.sortCode && <p className="text-xs text-[#F12D1B] mt-1 flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> {bankingErrors.sortCode}</p>}
+                </div>
+                <div>
+                  <Label className="text-[#383B3E]">Account Number</Label>
+                  <Input value={accountNumber} onChange={(e) => setAccountNumber(e.target.value)} className="rounded-xl h-11 bg-white" />
                 </div>
               </>
             )}
@@ -409,7 +401,7 @@ export function VerificationResponseForm({ token, payee, bankingMissing }: Verif
                   return;
                 }
 
-                const validationErrors = validateBanking(payee.country, { transitNumber, institutionNumber, accountNumber, abaRouting });
+                const validationErrors = validateBanking(selectedRail || payee.payment_rail || '', { transitNumber, institutionNumber, accountNumber, abaRouting, swiftCode, iban, sortCode });
                 if (Object.keys(validationErrors).length > 0) {
                   setBankingErrors(validationErrors);
                   setError('Please fix the banking detail errors before proceeding');

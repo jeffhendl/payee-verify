@@ -12,11 +12,8 @@ interface VerificationEmailParams {
 }
 
 export async function sendVerificationEmail(params: VerificationEmailParams) {
-  const formattedAmount = (params.currency === 'USD' ? 'US' : 'CA') + new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: params.currency,
-    currencyDisplay: 'narrowSymbol',
-  }).format(params.invoiceAmount);
+  const { formatCurrency } = await import('@/lib/utils');
+  const formattedAmount = formatCurrency(params.invoiceAmount, params.currency);
 
   const msg = {
     to: params.to,

@@ -92,7 +92,8 @@ export async function POST(request: Request) {
           has_bank_details: payee.account_number ? 'true' : 'false',
           last_four_account: payee.account_number ? payee.account_number.slice(-4) : '',
           country: payee.country || 'US',
-          bank_country: (payee.country || 'US') === 'CA' ? 'Canada' : 'United States',
+          bank_country: payee.country || 'US',
+          payment_rail: payee.payment_rail || 'unknown',
         },
         metadata: {
           verification_id: verification.id,
